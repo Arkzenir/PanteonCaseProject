@@ -22,8 +22,9 @@ other.
 |---|---|---|---|
 | Core | `CaseGame.Core` | Bootstrapping, the one sanctioned Singleton (`GameManager`), scene/system lifecycle | Events |
 | Grid | `CaseGame.Grid` | Grid data model: cell size/bounds (fully designer-editable via a `GridDefinition` SO — no fixed pixel size, set once art is chosen), occupancy, world↔cell conversion, placement validity queries | Core |
-| Buildings | `CaseGame.Buildings` | `BuildingBase` (abstract), `Barracks`, `PowerPlant`, `BuildingDefinition` (SO), `BuildingFactory` | Combat, Pooling, Units |
-| Units | `CaseGame.Units` | `SoldierBase` (abstract), `Soldier1/2/3`, `UnitDefinition` (SO), `UnitFactory` | Grid, Combat, Pathfinding, Events |
+| Entities | `CaseGame.Entities` | `GameEntityDefinition` (abstract SO: name/sprite/footprint/maxHealth) and `GameEntityBase` (abstract MonoBehaviour: owns a `Health`, implements `IDamageable`, sprite assignment, death callback) — shared by Buildings and Units so neither duplicates this shape (see decisions log #22) | Combat |
+| Buildings | `CaseGame.Buildings` | `BuildingBase` (: `GameEntityBase`), `Barracks`, `PowerPlant`, `BuildingDefinition` (: `GameEntityDefinition`), `BuildingFactory` | Entities, Pooling, Units |
+| Units | `CaseGame.Units` | `SoldierBase` (abstract, future: `GameEntityBase`), `Soldier1/2/3`, `UnitDefinition` (: `GameEntityDefinition`), `UnitFactory` | Entities, Grid, Pathfinding, Events |
 | Combat | `CaseGame.Combat` | `IDamageable`, `Health` (HP, damage, death via plain per-instance C# events — see decisions log #19) | — |
 | Pathfinding | `CaseGame.Pathfinding` | Grid-based A* implementation, path requests, obstacle-aware routing ("wander around buildings") | Grid |
 | Placement | `CaseGame.Placement` | Ghost/preview while placing a building, valid/invalid (red) area feedback, commit-to-grid | Grid, Buildings, Events |
@@ -70,11 +71,19 @@ updates, publishing/subscribing via Events rather than reaching into each other 
   Panel (UI). Hierarchy uses top-level organizers per CONVENTIONS.md: `--- SYSTEMS ---`,
   `--- ENVIRONMENT ---` (grid/board), `--- GAMEPLAY ---` (spawned buildings/units container),
   `--- UI ---` (Production Menu, Information Panel, Canvas).
-- Key prefabs (added as each feature lands): `Barracks.prefab`, `PowerPlant.prefab`,
-  `Soldier_1/2/3.prefab`, a Production Menu list-item prefab (pooled), ghost/preview prefab
-  for placement.
+- Key prefabs (added as each feature lands): `Assets/_Project/Prefabs/Buildings/Building_Barracks.prefab`
+  and `Building_PowerPlant.prefab` (human-created after Report 009) — each a parent GameObject
+  with `Visuals` (SpriteRenderer), `Hitbox` (collider, for future selection), and (Barracks
+  only) `SpawnPoint` as children, per CONVENTIONS.md's per-prefab grouping convention. Still to
+  come: `Soldier_1/2/3.prefab`, a Production Menu list-item prefab (pooled), ghost/preview
+  prefab for placement.
+- SO definition assets live under `Assets/_Project/ScriptableObjects/`: `GridDef_Default.asset`
+  at the root, `Units/Buildings/BuildingDef_Barracks.asset` + `BuildingDef_PowerPlant.asset`
+  under a shared `Units/` parent (human's own organization — Buildings and Troops defs both
+  nest under `Units/`, a discussion point for a possible shared-base-class refactor, TBD).
 - This section is updated feature-by-feature as prefabs are actually created — treat the
-  above as the plan, not yet-built inventory.
+  above as the plan, not yet-built inventory (except the two building prefabs above, which
+  now exist and are still mid-wiring pending an architecture discussion in progress).
 
 ## 5. Brief-mandated requirements checklist
 Tracks BRIEF.md's "Hard requirements" 1–19 by number. No single numbered requirement is
@@ -148,6 +157,17 @@ landed that these requirements will build on.
   (that's Placement's job), and no requirement below is checked off — the human still needs
   to create the two concrete `BuildingDef_Barracks`/`BuildingDef_PowerPlant` assets and
   prefabs per the report's editor hookup checklist.
+- Report 010 (`Docs/Reports/010_shared-entity-base.md`): extracted `GameEntityDefinition` and
+  `GameEntityBase` (new `Entities` module) out of `BuildingDefinition`/`BuildingBase`, per the
+  human's suggestion. `BuildingDefinition`/`UnitDefinition` now both extend
+  `GameEntityDefinition`; `BuildingBase` now extends `GameEntityBase` (and just re-exposes
+  `Definition` as the strongly-typed `BuildingDefinition`). Removes the field/logic
+  duplication that existed between Buildings' and Units' definitions and bases, and gives the
+  brief's mandated "Inheritance" requirement a real hierarchy to stand on ahead of the future
+  `SoldierBase : GameEntityBase`. Human also hand-adjusted the project's actual folder/prefab
+  structure after Report 009 (`ScriptableObjects/Units/{Buildings,Troops}/` instead of
+  `Settings/`; prefabs use child GameObjects for `Visuals`/`Hitbox`/`SpawnPoint`) — recorded in
+  `CONVENTIONS.md`.
 
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
@@ -194,3 +214,4 @@ landed that these requirements will build on.
 | 19 | `Health.Damaged`/`Health.Died` are plain per-instance C# events, not a shared `GameEventChannel<T>` from the Events module (Report 008) — refines the Phase-0 module map, which listed Combat as depending on Events | Every unit/building will own its *own* `Health` instance; a shared/global SO channel would broadcast every instance's HP changes to every listener, which is the wrong shape for "this specific soldier took damage." Plain instance events are the correct decoupling tool here (raiser and the one interested listener — that instance's own controller/view — share the `Health` object reference directly), while a global channel remains right for genuinely cross-system, one-of-a-kind signals (e.g. a future `SelectionChanged`) | Routing every `Health` instance's events through a shared `GameEventChannel<Health>` — would require every listener to filter for "is this event about the instance I care about", solving a problem that doesn't exist here |
 | 20 | Added a minimal `UnitDefinition` (SO, data only: name/sprite/footprint/HP/attack damage) under `CaseGame.Units` as part of the Buildings feature, ahead of the full Units feature (Report 009) | Brief requirement 2 explicitly mandates `BuildingDefinition` reference a list of `UnitDefinition`s (data-driven producible units, not switch-cased) — `BuildingDefinition` can't compile without the type existing. This is a data-only stub, not scope creep into Units' actual behavior (`SoldierBase`/`Soldier1/2/3`/`UnitFactory` still land as their own feature) | Making `BuildingDefinition`'s producible list untyped (`object`/string names) to defer the dependency — would give up compile-time safety and contradict the brief's explicit `UnitDefinition` reference mandate |
 | 21 | `BuildingBase.Initialize(definition, onDied)` takes an optional death callback instead of knowing about `PrefabPool<T>`/pooling itself; `BuildingFactory.Create` wires `() => pool.Release(instance)` as that callback | Keeps `BuildingBase` single-responsibility (HP/sprite only) and testable via a plain callback with no pool in the test at all; the Factory is the one thing that knows both "this instance came from a pool" and "this instance died," so it's the natural place to connect the two | `BuildingBase` holding a direct reference to its own pool (couples the humble building class to a pooling implementation detail it doesn't need to know about) |
+| 22 | Extracted `GameEntityDefinition`/`GameEntityBase` (new `CaseGame.Entities` module) as a shared base for `BuildingDefinition`/`BuildingBase` and (future) `UnitDefinition`/`SoldierBase` (Report 010) | Human-suggested. `BuildingDefinition`/`UnitDefinition` already duplicated identical fields (name, sprite, footprint, maxHealth) and `BuildingBase`'s `Health`/`IDamageable`/sprite/death-callback logic is exactly what a future `SoldierBase` needs too — real, current duplication, not speculative. Gives the brief's mandated "Inheritance" a real hierarchy rather than the shallow `Barracks`/`PowerPlant : BuildingBase` split alone. Named `GameEntity*`, not `Unit*` — the brief's own text uses "unit(s)" specifically to mean soldiers throughout ("Soldier Units," "attack...on a unit or building," etc.), always as a sibling of "building," never as an umbrella term, so naming the shared base "Unit" would misread against the brief's own vocabulary and would have collided with the already-existing `UnitDefinition` | Naming the shared base `Unit*`/`UnitBase` (collides with existing `UnitDefinition` and the brief's own soldier-specific use of "unit"); leaving the duplication in place since only 2 concrete types ship |
