@@ -1,7 +1,11 @@
 {
     "name": "CaseGame.Runtime",
     "rootNamespace": "CaseGame",
-    "references": [],
+    "references": [
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

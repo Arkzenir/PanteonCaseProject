@@ -103,6 +103,17 @@ landed that these requirements will build on.
   `CaseGame.Editor` asmdef). `GameManager.firstScene` now uses it instead of a raw string
   field. Project convention going forward: prefer typed asset-picker wrappers over raw string
   fields for asset references (see `CONVENTIONS.md` overrides).
+- Report 005 (`Docs/Reports/005_main-menu-and-settings.md`): implements requirement 19 — Main
+  Menu (`MainMenuController`) with Play/Settings navigation and a Settings screen
+  (`SettingsController` + tested `ResolutionOptionsBuilder`) for resolution/fullscreen, built on
+  TextMeshPro (`TMP_Dropdown` for resolution selection) and the Input System package's
+  `InputSystemUIInputModule` — both installed by the human specifically for this feature, with
+  Input System also intended for gameplay input later. Also relocated `Boot.unity`/
+  `Gameplay.unity` from `Assets/Scenes/` to `Assets/_Project/Scenes/` (human-approved hygiene
+  fix) and added `MainMenu.unity` there; scene flow `Boot → MainMenu → Gameplay` is fully wired
+  end-to-end (Build Settings, `GameManager`, `MainMenuController`), pending only the human's
+  hand-test confirmation. (Redone in place per human instruction — the original legacy-UI/no
+  packages version of this feature was superseded, not shipped as a separate feature.)
 
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
@@ -122,7 +133,7 @@ landed that these requirements will build on.
 - [ ] 16. Legible, standards-compliant code
 - [ ] 17. Evaluation-grade scene/naming/folder hygiene
 - [ ] 18. Edge cases considered
-- [ ] 19. Main Menu with Play button + Settings screen (resolution/display-mode)
+- [x] 19. Main Menu with Play button + Settings screen (resolution/display-mode) — Report 005, `Assets/_Project/Scenes/MainMenu.unity`; pending human hand-test confirmation
 
 ## 6. Decisions log
 
@@ -141,3 +152,6 @@ landed that these requirements will build on.
 | 9 | Added a Main Menu (`MainMenu.unity`) with Play + Settings (resolution/display-mode), inserted into scene flow as `Boot` → `MainMenu` → `Gameplay` | Human-mandated so the evaluator can exercise GI-13 (aspect ratio/resolution support) directly rather than only via editor Game-view resizing; brief's own resolution requirement is the stated reason | No main menu (original Phase-0 assumption, since superseded) |
 | 12 | `GameManager.Awake` calls `DontDestroyOnLoad(transform.root.gameObject)` instead of `DontDestroyOnLoad(gameObject)` (Report 003) | `DontDestroyOnLoad` only accepts root GameObjects; `GameManager` is a child of `--- SYSTEMS ---` per CONVENTIONS.md scene composition, so the un-rooted call threw at runtime (human caught this hand-testing Report 002). Persisting the whole root also matches ARCHITECTURE.md §4's intent that all of `--- SYSTEMS ---` (event channels, pools, etc., once they exist) survive scene loads together | Moving `GameManager` to scene root instead — would violate CONVENTIONS.md's "no loose objects at root" rule |
 | 13 | Added `SceneReference` (`CaseGame.Core`) as a reusable asset-picker wrapper for scene references, backed by an editor-only `SceneAsset` field synced to a runtime-safe `sceneName` string via `ISerializationCallbackReceiver`; added `SceneReferenceDrawer` so it still shows as a single object-picker field, not two raw fields. First script under `Scripts/Editor/`, first `CaseGame.Editor` asmdef (Report 004) | Human-mandated project convention: prefer typed asset-picker `SerializeField`s over raw strings for asset references, to avoid typo-prone/rename-unsafe hardcoded names — `GameManager.firstScene` was the first offender | Leaving `firstSceneName` as a raw string; using Unity's Build-Settings scene index instead (more fragile to reordering) |
+| 14 | Relocated `Boot.unity`/`Gameplay.unity` from `Assets/Scenes/` to `Assets/_Project/Scenes/` (Report 005) | Both had been hand-created in Unity's default `Assets/Scenes/` folder during earlier editor hookup checklists instead of the CONVENTIONS.md-mandated `_Project/` root; caught by the agent while starting the Main Menu feature, fixed with explicit human approval since it required moving/editing tracked assets and `ProjectSettings/EditorBuildSettings.asset` | Leaving them misplaced (would fail the brief's explicit folder-structure evaluation criterion, GI-15) |
+| 15 | Main Menu built with TextMeshPro (`TMP_Dropdown` for resolution selection, via `TMPro.TMP_DefaultControls` factory methods) and the Input System package's `InputSystemUIInputModule` on the scene's `EventSystem` (Report 005, redone in place) | Human explicitly installed `com.unity.inputsystem` and imported TMP Essential Resources specifically for this feature, with Input System also intended for gameplay input later (per CONVENTIONS.md's pre-existing baseline default, previously un-actionable because the package wasn't installed) and TMP_Dropdown specifically requested over the earlier prev/next-button cycler workaround | Keeping the legacy `UnityEngine.UI`/cycler version from the original pass at this feature — superseded, not shipped |
+| 16 | `TMP_DefaultControls.CreateButton/CreateText/CreateDropdown(new TMP_DefaultControls.Resources())` (all-null sprite fields) safely builds fully-functional TMP widgets — including `TMP_Dropdown`'s full template/viewport/scrollbar sub-hierarchy — via editor script now that TMP Essentials are imported; `InputSystemUIInputModule` self-configures via its `Reset()`/`OnEnable()`'s `AssignDefaultActions()`, wiring a complete default Point/Click/Navigate/Submit/Cancel action set from the Input System package's own bundled default actions asset, with no manual `.inputactions` authoring needed (Report 005) | Empirically verified by reading both source (`Library/PackageCache/...`) and the generated scene YAML back after running the setup script — confirms these APIs are safe to drive from a headless batchmode editor script on this pinned version | Hand-building the Dropdown's template hierarchy or a custom `InputActionAsset` — unnecessary, both packages already provide safe, complete defaults |

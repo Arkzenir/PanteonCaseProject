@@ -6,7 +6,8 @@
 ## Unity
 - **Unity version (PINNED — set from the brief; API arbiter for all code):** `2021.3.45f2`
 - **Key package versions locked to this editor** (fill from `Packages/manifest.json` after
-  project creation):
+  project creation): `com.unity.inputsystem: 1.7.0` (installed by the human for Report 005;
+  intended for UI *and* gameplay input going forward — see CONVENTIONS.md baseline), `com.unity.textmeshpro: 3.0.9` (TMP Essential Resources imported by the human before Report 005).
 - **Unity editor path:** `C:\Program Files\Unity\Hub\Editor\2021.3.45f2\Editor\Unity.exe`
 - **Project path:** `C:\UnityProjects\PanteonCaseProject`
 
@@ -49,3 +50,33 @@ same command with `-testPlatform PlayMode` (only when a feature genuinely needs 
   explicitly in the report, per CLAUDE.md's "purely presentational or editor-wired" carve-out.
   If a future feature genuinely needs automated coverage of lifecycle behavior, reach for
   PlayMode tests (`-testPlatform PlayMode`) rather than EditMode.
+- **`TMPro.TMP_DefaultControls.CreateButton/CreateText/CreateDropdown` are safe to call from a
+  headless batchmode editor script on this version**, including with an all-default (null
+  sprite fields) `Resources` struct — they build fully-functional TMP widgets, and
+  `CreateDropdown` correctly builds `TMP_Dropdown`'s full template/viewport/scrollbar
+  sub-hierarchy without any manual wiring (confirmed empirically, Report 005; this only works
+  because TMP Essential Resources are imported — `Assets/TextMesh Pro/Resources/TMP Settings.asset`
+  must exist first).
+- **`InputSystemUIInputModule` self-configures with no manual `.inputactions` authoring** —
+  its `Reset()`/`OnEnable()` call `AssignDefaultActions()`, which wires a complete default
+  Point/Click/Navigate/Submit/Cancel action set from the Input System package's own bundled
+  default actions asset. Just `AddComponent<InputSystemUIInputModule>()` on the `EventSystem`
+  GameObject (instead of the legacy `StandaloneInputModule`) and it works (confirmed
+  empirically, Report 005).
+- **Throwaway editor setup scripts** (CLAUDE.md's editor script policy exception for large/
+  error-prone one-off wiring) run cleanly via
+  `-batchmode -quit -projectPath "<ProjectPath>" -executeMethod <Namespace>.<Type>.<StaticMethod> -logFile -`
+  with the editor closed — same rules as the compile check (Mode B). Confirmed working for
+  scene creation (`EditorSceneManager`), `SerializedObject`/`FindProperty`/
+  `FindPropertyRelative` field wiring (including into nested `[Serializable]` fields like
+  `SceneReference`), and rewriting `EditorBuildSettings.scenes` (Report 005). Always verify
+  the result by reading the generated files back (grep the `.unity`/`.asset` YAML) rather than
+  trusting a clean exit code alone — Unity logs some failures (e.g. a missing built-in
+  resource, seen once during Report 005's first draft with a since-removed legacy-font code
+  path) as non-fatal errors that don't change the process exit code.
+- **Asmdef references are not transitive** — if asmdef C references asmdef B, and B references
+  assembly A, C does *not* automatically get access to A; C must list A directly too. Caught
+  when `CaseGame.Editor` (which references `CaseGame.Runtime`) failed to compile against
+  `TMPro`/`UnityEngine.InputSystem` even though `CaseGame.Runtime` already referenced
+  `Unity.TextMeshPro`/`Unity.InputSystem` — had to add both to `CaseGame.Editor.asmdef`
+  directly (Report 005).

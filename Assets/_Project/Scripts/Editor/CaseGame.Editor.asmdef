@@ -2,7 +2,9 @@
     "name": "CaseGame.Editor",
     "rootNamespace": "CaseGame.Editor",
     "references": [
-        "CaseGame.Runtime"
+        "CaseGame.Runtime",
+        "Unity.TextMeshPro",
+        "Unity.InputSystem"
     ],
     "includePlatforms": [
         "Editor"
