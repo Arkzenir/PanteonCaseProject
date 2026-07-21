@@ -24,7 +24,7 @@ other.
 | Grid | `CaseGame.Grid` | Grid data model: cell size/bounds (fully designer-editable via a `GridDefinition` SO — no fixed pixel size, set once art is chosen), occupancy, world↔cell conversion, placement validity queries | Core |
 | Entities | `CaseGame.Entities` | `GameEntityDefinition` (abstract SO: name/sprite/footprint/maxHealth) and `GameEntityBase` (abstract MonoBehaviour: owns a `Health`, implements `IDamageable`, sprite assignment, death callback) — shared by Buildings and Units so neither duplicates this shape (see decisions log #22) | Combat |
 | Buildings | `CaseGame.Buildings` | `BuildingBase` (: `GameEntityBase`), `Barracks`, `PowerPlant`, `BuildingDefinition` (: `GameEntityDefinition`), `BuildingFactory` | Entities, Pooling, Units |
-| Units | `CaseGame.Units` | `SoldierBase` (abstract, future: `GameEntityBase`), `Soldier1/2/3`, `UnitDefinition` (: `GameEntityDefinition`), `UnitFactory` | Entities, Grid, Pathfinding, Events |
+| Units | `CaseGame.Units` | `SoldierBase` (: `GameEntityBase`, adds `MoveTo`/`TryAttack`), `Soldier` (the one concrete type — 3 soldier variants are `UnitDefinition` data, not 3 classes, see decisions log #26), `UnitDefinition` (: `GameEntityDefinition`), `UnitFactory` | Entities, Grid, Pathfinding, Combat |
 | Combat | `CaseGame.Combat` | `IDamageable`, `Health` (HP, damage, death via plain per-instance C# events — see decisions log #19) | — |
 | Pathfinding | `CaseGame.Pathfinding` | `AStarPathfinder`: static, tested 8-directional grid A* with corner-cutting prevention ("wander around buildings," GI-7/8). No request-queue/coroutine layer yet — added if a real caller (Units movement) shows it's needed | Grid |
 | Placement | `CaseGame.Placement` | Ghost/preview while placing a building, valid/invalid (red) area feedback, commit-to-grid | Grid, Buildings, Events |
@@ -71,19 +71,24 @@ updates, publishing/subscribing via Events rather than reaching into each other 
   Panel (UI). Hierarchy uses top-level organizers per CONVENTIONS.md: `--- SYSTEMS ---`,
   `--- ENVIRONMENT ---` (grid/board), `--- GAMEPLAY ---` (spawned buildings/units container),
   `--- UI ---` (Production Menu, Information Panel, Canvas).
-- Key prefabs (added as each feature lands): `Assets/_Project/Prefabs/Buildings/Building_Barracks.prefab`
-  and `Building_PowerPlant.prefab` (human-created after Report 009) — each a parent GameObject
-  with `Visuals` (SpriteRenderer), `Hitbox` (collider, for future selection), and (Barracks
-  only) `SpawnPoint` as children, per CONVENTIONS.md's per-prefab grouping convention. Still to
-  come: `Soldier_1/2/3.prefab`, a Production Menu list-item prefab (pooled), ghost/preview
-  prefab for placement.
+- Key prefabs (added as each feature lands), all under `Assets/_Project/Prefabs/`:
+  `Buildings/Building_Barracks.prefab` + `Building_PowerPlant.prefab` (human-created after
+  Report 009) — each a parent GameObject with `Visuals` (SpriteRenderer), `Hitbox` (collider,
+  for future selection), and (Barracks only) `SpawnPoint` as children. `Units/Soldier_1.prefab`,
+  `Soldier_2.prefab`, `Soldier_3.prefab` (human-created after Report 012, same `<Category>_<Name>`
+  naming as the buildings) — same `Visuals`/`Hitbox` child structure, `Soldier` component on
+  the root. All per CONVENTIONS.md's per-prefab grouping convention. Still to come: a Production Menu
+  list-item prefab (pooled), ghost/preview prefab for placement.
 - SO definition assets live under `Assets/_Project/ScriptableObjects/`: `GridDef_Default.asset`
-  at the root, `Units/Buildings/BuildingDef_Barracks.asset` + `BuildingDef_PowerPlant.asset`
-  under a shared `Units/` parent (human's own organization — Buildings and Troops defs both
-  nest under `Units/`, a discussion point for a possible shared-base-class refactor, TBD).
-- This section is updated feature-by-feature as prefabs are actually created — treat the
-  above as the plan, not yet-built inventory (except the two building prefabs above, which
-  now exist and are still mid-wiring pending an architecture discussion in progress).
+  at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` + `BuildingDef_PowerPlant.asset`,
+  and `GameEntityDefs/Units/UnitDef_Soldier1.asset` + `UnitDef_Soldier2.asset` +
+  `UnitDef_Soldier3.asset` — human's own organization, renamed from an earlier
+  `ScriptableObjects/Units/{Buildings,Troops}/` pass to `GameEntityDefs/` once the
+  `GameEntityDefinition` shared base landed (Report 010), which is a more accurate name for
+  what the folder actually holds.
+- This section is updated feature-by-feature as prefabs/assets are actually created — treat
+  the above as current inventory as of Report 012, and whatever's still listed as "to come" as
+  the plan, not yet built.
 
 ## 5. Brief-mandated requirements checklist
 Tracks BRIEF.md's "Hard requirements" 1–19 by number. No single numbered requirement is
@@ -175,6 +180,15 @@ landed that these requirements will build on.
   behind requirement 8's "wander around the buildings." No coroutine-based path-request queue
   yet — nothing consumes pathfinding until Units/Selection exist, so a queued/async layer
   would be speculative before a real caller reveals whether one's even needed.
+- Report 012 (`Docs/Reports/012_units.md`): landed the `Units` module — `SoldierBase`
+  (`: GameEntityBase`, adds `MoveTo` — pathfinds via `AStarPathfinder` then walks the route in
+  a Coroutine, the brief-mandated Coroutine pattern's natural home per §3's data-flow — and
+  `TryAttack`), `Soldier` (the one concrete class), `UnitFactory` (Factory pattern, pools via
+  `PrefabPool<T>`, mirrors `BuildingFactory`), and extended the existing `UnitDefinition` with
+  `MoveSpeed`. The brief's 3 soldier types ship as 3 `UnitDefinition` assets sharing the one
+  `Soldier` class, not 3 separate classes — see decisions log #26. Still no scene has an actual
+  soldier in it (that's Selection/Production's job to spawn and command one) — the human needs
+  to create the 3 `UnitDef_Soldier{1,2,3}` assets and prefabs per the editor hookup checklist.
 
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
@@ -225,3 +239,5 @@ landed that these requirements will build on.
 | 23 | `AStarPathfinder` is a static, stateless class (`FindPath(grid, start, goal)`) rather than an instantiable object holding the grid as a field (Report 011) | It has no state beyond the grid reference passed in for a single call — no per-instance data to justify object lifecycle management; callers don't need to construct/hold a pathfinder object at all | Instance-based `new AStarPathfinder(grid).FindPath(start, goal)` — adds ceremony with no benefit here |
 | 24 | 8-directional movement (diagonal cost √2, octile-distance heuristic) with corner-cutting prevention, instead of 4-directional-only | 4-directional-only would still technically "route around" buildings but produce visibly blocky, unnatural-looking paths for a 2D top-down game; corner-cutting prevention (reject a diagonal step if either flanking orthogonal cell is blocked) is what actually makes "wander around the buildings" (GI-7/8) true instead of soldiers visually clipping through a building's corner | 4-directional-only movement (simpler, but worse-looking paths and doesn't need the corner-cut edge case at all — would undersell "accounting for edge cases," GI-16) |
 | 25 | No coroutine-based path-request queue/manager in this pass, despite ARCHITECTURE.md's original module description mentioning "path requests" (Report 011) | Nothing calls `AStarPathfinder` yet — Units/Selection (the actual callers) don't exist. Building a request-queue layer now would be speculative (golden rule 2); the brief's Coroutine requirement doesn't specifically require it live in Pathfinding — it's equally at home in the future unit-movement code that steps a soldier along the returned path | Building an async/queued path-request layer now on the assumption it'll be needed — defer until a real caller shows whether pathfinding actually needs to be spread across frames |
+| 26 | The brief's 3 soldier types ship as 3 `UnitDefinition` assets/prefabs sharing one concrete `Soldier : SoldierBase` class, not 3 separate `Soldier1`/`Soldier2`/`Soldier3` classes as Phase-0's module map assumed (Report 012) | Requirements 9's only difference between the 3 types is attack damage (10/5/2) — a data value. Nothing behavioral differs, so 3 empty subclasses would be an OOP checkbox with no substance behind it, and would contradict the project's own established philosophy of differentiating via data rather than code (the same reasoning already applied to `BuildingDefinition`'s producible-units list, decision #8). `SoldierBase` stays abstract (mirroring `BuildingBase`) so a *genuinely* different future soldier type still has a clean extension point | 3 empty subclasses purely to match the Phase-0 naming — would look like more inheritance than is actually true, and the brief never requires the classes to be literally named Soldier1/2/3, just that 3 soldier types with those stats exist |
+| 27 | `SoldierBase.MoveTo` requests a path and walks it via `StartCoroutine` directly on the soldier itself, rather than Selection owning movement execution (Report 012) | Matches ARCHITECTURE.md §3's own data-flow description: "the soldier's controller consumes it, requests a path from Pathfinding, and moves along it via coroutine." Selection's job (once built) is just to interpret the right-click and call `MoveTo`/`TryAttack` — the humble MonoBehaviour that owns the transform is the natural place for the coroutine that moves it | Movement execution living in Selection instead — would make Selection reach into a soldier's transform from outside, and scatters "how a soldier moves" across two modules for no benefit |

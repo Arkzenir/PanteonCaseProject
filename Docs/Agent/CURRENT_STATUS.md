@@ -7,23 +7,25 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 011 (`Pathfinding`), 2026-07-21. Compile clean, **60/60 EditMode tests passing**.
+**Last report:** 012 (`Units`), 2026-07-21. Compile clean, **70/70 EditMode tests passing**.
 
-**Pending on the human:** nothing outstanding right now. Report 005's Main Menu hand-test was
-confirmed working 2026-07-21 — requirement 19 (`ARCHITECTURE.md` §5) is the one fully-closed
-brief requirement so far; everything else in the checklist is still `[ ]`.
+**Pending on the human:** nothing outstanding — Report 012's hand-wiring is done (3
+`UnitDef_Soldier{1,2,3}` assets + `Soldier1/2/3.prefab`, sprites still unassigned pending an
+art pick, which is fine to leave for later). Requirement 19 (Main Menu) remains the one
+fully-closed brief requirement; everything else in the checklist is still `[ ]`.
 
 **Modules with real, tested code:** Core (`GameManager`), Grid, Entities (shared
-`GameEntityDefinition`/`GameEntityBase`), Combat, Buildings, Events, Pooling, Pathfinding.
+`GameEntityDefinition`/`GameEntityBase`), Combat, Buildings, Units (`SoldierBase`/`Soldier`/
+`UnitFactory` — note: 3 soldier *types* are `UnitDefinition` data, not 3 classes, see
+decisions log #26), Events, Pooling, Pathfinding.
 
-**Not yet built:** Units (soldier behavior — `SoldierBase`, `Soldier1/2/3`, `UnitFactory`),
-Placement, Selection, UI.Production, UI.Info, actual Gameplay scene assembly, draw-call/
-batching verification, Windows build export.
+**Not yet built:** Placement, Selection, UI.Production, UI.Info, actual Gameplay scene
+assembly, draw-call/batching verification, Windows build export.
 
 **Recommended next-feature order** (dependency-driven — each step only needs what's already
 shipped above it; full reasoning given in chat and the published "Development Dispatch"
 artifact on 2026-07-21, not otherwise saved in the repo):
-1. **Units** — mirrors Buildings; everything it needs (Entities, Combat, Pooling, Pathfinding) already exists.
+1. ~~Units~~ — done (Report 012).
 2. **Placement** — ghost preview, red/valid feedback, commit-to-grid. Only needs Grid + Buildings.
 3. **UI.Production** — infinite pooled scroll view; wires to Placement's entry point.
 4. **Selection** — left-click select / right-click move-or-attack. Needs Units to exist first.
@@ -40,6 +42,8 @@ the generated files back, not just trusting a clean exit code.
 
 **Standing conventions to remember** (full detail in `CONVENTIONS.md` overrides table): prefer
 typed asset-picker `SerializeField`s over raw strings (see `SceneReference`); SO definition
-assets live under `Assets/_Project/ScriptableObjects/<Category>/`, not `Settings/`; building/
-unit prefabs are a parent GameObject with child GameObjects per concern (`Visuals`, `Hitbox`,
-`SpawnPoint`, ...).
+assets live under `Assets/_Project/ScriptableObjects/GameEntityDefs/<Category>/`, not
+`Settings/`; building/unit prefabs are a parent GameObject with child GameObjects per concern
+(`Visuals`, `Hitbox`, `SpawnPoint`, ...) — buildings under `Prefabs/Buildings/` named
+`Building_<Name>`, soldiers under `Prefabs/Units/` named `Soldier_<N>` (same `<Category>_<Name>`
+convention).
