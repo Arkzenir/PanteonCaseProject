@@ -194,7 +194,7 @@ landed that these requirements will build on.
 - [ ] 16. Legible, standards-compliant code
 - [ ] 17. Evaluation-grade scene/naming/folder hygiene
 - [ ] 18. Edge cases considered
-- [x] 19. Main Menu with Play button + Settings screen (resolution/display-mode) — Report 005, `Assets/_Project/Scenes/MainMenu.unity`; pending human hand-test confirmation
+- [x] 19. Main Menu with Play button + Settings screen (resolution/display-mode) — Report 005, `Assets/_Project/Scenes/MainMenu.unity`; human hand-tested and confirmed working (2026-07-21)
 
 ## 6. Decisions log
 
