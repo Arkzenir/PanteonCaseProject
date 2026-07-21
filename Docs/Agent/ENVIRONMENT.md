@@ -4,12 +4,11 @@
 > verification and never guesses paths.
 
 ## Unity
-- **Unity version (PINNED — set from the brief; API arbiter for all code):** `<e.g. 2021.3.45f1>`
+- **Unity version (PINNED — set from the brief; API arbiter for all code):** `2021.3.45f2`
 - **Key package versions locked to this editor** (fill from `Packages/manifest.json` after
-  project creation): Input System `<x.y.z>`, TextMeshPro/UGUI `<x.y.z>`, URP/HDRP `<x.y.z>`,
-  Test Framework `<x.y.z>`
-- **Unity editor path:** `<e.g. C:\Program Files\Unity\Hub\Editor\6000.0.32f1\Editor\Unity.exe>`
-- **Project path:** `<absolute path to repo root>`
+  project creation):
+- **Unity editor path:** `C:\Program Files\Unity\Hub\Editor\2021.3.45f2\Editor\Unity.exe`
+- **Project path:** `C:\UnityProjects\PanteonCaseProject`
 
 ## Compile check (choose the mode that fits the moment)
 
