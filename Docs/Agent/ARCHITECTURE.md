@@ -22,9 +22,9 @@ other.
 |---|---|---|---|
 | Core | `CaseGame.Core` | Bootstrapping, the one sanctioned Singleton (`GameManager`), scene/system lifecycle | Events |
 | Grid | `CaseGame.Grid` | Grid data model: cell size/bounds (fully designer-editable via a `GridDefinition` SO — no fixed pixel size, set once art is chosen), occupancy, world↔cell conversion, placement validity queries | Core |
-| Buildings | `CaseGame.Buildings` | `BuildingBase` (abstract), `Barracks`, `PowerPlant`, `BuildingDefinition` (SO), `BuildingFactory` | Grid, Combat, Events |
+| Buildings | `CaseGame.Buildings` | `BuildingBase` (abstract), `Barracks`, `PowerPlant`, `BuildingDefinition` (SO), `BuildingFactory` | Combat, Pooling, Units |
 | Units | `CaseGame.Units` | `SoldierBase` (abstract), `Soldier1/2/3`, `UnitDefinition` (SO), `UnitFactory` | Grid, Combat, Pathfinding, Events |
-| Combat | `CaseGame.Combat` | `IDamageable`, `Health` (HP, damage, death), attack resolution | Events |
+| Combat | `CaseGame.Combat` | `IDamageable`, `Health` (HP, damage, death via plain per-instance C# events — see decisions log #19) | — |
 | Pathfinding | `CaseGame.Pathfinding` | Grid-based A* implementation, path requests, obstacle-aware routing ("wander around buildings") | Grid |
 | Placement | `CaseGame.Placement` | Ghost/preview while placing a building, valid/invalid (red) area feedback, commit-to-grid | Grid, Buildings, Events |
 | Selection | `CaseGame.Selection` | Left-click select, right-click move/attack command interpretation, raises intent events | Units, Buildings, Events |
@@ -127,6 +127,27 @@ landed that these requirements will build on.
   instantiate/activate/deactivate/destroy so callers just `Get()`/`Release()`. Foundation only:
   no concrete pooled type (scroll-view list items, soldiers, buildings) exists yet — this
   lands alongside whichever future feature first needs one (Production Menu is next in line).
+- Report 008 (`Docs/Reports/008_combat.md`): landed the `Combat` module foundation —
+  `IDamageable` (contract) and `Health` (plain C# HP state, damage/clamp/death logic, tested)
+  under `Assets/_Project/Scripts/Runtime/Combat/`. Foundation only: no soldier/building type
+  exists yet to own a `Health` instance with the brief's actual numbers (requirements 9/10),
+  and nothing yet calls `ApplyDamage` from an attack command (requirement 11) — those land
+  with Units/Buildings/Selection. Refines the Phase-0 assumption that Combat depends on
+  Events: `Damaged`/`Died` are plain per-instance C# events, not a shared `GameEventChannel<T>`
+  (see decisions log #19).
+- Report 009 (`Docs/Reports/009_buildings.md`): landed the `Buildings` module —
+  `BuildingDefinition` (SO), `BuildingBase` (abstract, humble, implements `IDamageable` via a
+  `Health` it owns), `Barracks` (adds a spawn point, GI-7), `PowerPlant` (no additions — only
+  building type with no producible units, GI-6), and `BuildingFactory` (Factory pattern,
+  pools instances via the already-built `PrefabPool<T>`) — all under
+  `Assets/_Project/Scripts/Runtime/Buildings/`. Also added a minimal `UnitDefinition` (SO,
+  data only) under `Assets/_Project/Scripts/Runtime/Units/` — a prerequisite for
+  `BuildingDefinition`'s producible-units list (requirement 2); the full Units feature
+  (`SoldierBase`, `Soldier1/2/3` behavior, `UnitFactory`) is still a separate future feature.
+  Foundation-ish but one step closer to shippable: no scene has an actual placed building yet
+  (that's Placement's job), and no requirement below is checked off — the human still needs
+  to create the two concrete `BuildingDef_Barracks`/`BuildingDef_PowerPlant` assets and
+  prefabs per the report's editor hookup checklist.
 
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
@@ -170,3 +191,6 @@ landed that these requirements will build on.
 | 16 | `TMP_DefaultControls.CreateButton/CreateText/CreateDropdown(new TMP_DefaultControls.Resources())` (all-null sprite fields) safely builds fully-functional TMP widgets — including `TMP_Dropdown`'s full template/viewport/scrollbar sub-hierarchy — via editor script now that TMP Essentials are imported; `InputSystemUIInputModule` self-configures via its `Reset()`/`OnEnable()`'s `AssignDefaultActions()`, wiring a complete default Point/Click/Navigate/Submit/Cancel action set from the Input System package's own bundled default actions asset, with no manual `.inputactions` authoring needed (Report 005) | Empirically verified by reading both source (`Library/PackageCache/...`) and the generated scene YAML back after running the setup script — confirms these APIs are safe to drive from a headless batchmode editor script on this pinned version | Hand-building the Dropdown's template hierarchy or a custom `InputActionAsset` — unnecessary, both packages already provide safe, complete defaults |
 | 17 | Events module uses ScriptableObject event channels (`GameEvent`, generic `GameEventChannel<T>` base), not plain static C# `event`/`Action` fields, plus a `GameEventListener` MonoBehaviour bridging to a designer-configured `UnityEvent` (Report 006) | CONVENTIONS.md's baseline already names "ScriptableObject event channels when designer-facing wiring is valuable" as the preferred decoupling mechanism; SO channels let a raiser and listener both reference the same asset with zero direct-reference or static coupling, and are asset-picker-friendly (consistent with decision #13's asset-picker-over-string convention). Only the parameterless `GameEvent` ships now — typed payload channels (e.g. a future `BuildingDefinition` channel for Selection → Info Panel) get added as concrete `GameEventChannel<T>` subclasses alongside whichever feature first needs one, since inventing payload types speculatively would violate golden rule 2 | Static C# `event Action` fields on a static bus class (works, but re-introduces static/global coupling the brief's Events requirement is meant to avoid); building typed listener/channel variants now for hypothetical future payloads |
 | 18 | `PrefabPool<T>` wraps Unity's built-in `UnityEngine.Pool.ObjectPool<T>` rather than a hand-rolled stack/queue pool (Report 007) | The brief mandates the Object Pooling *pattern* being demonstrably used, not a from-scratch implementation; `ObjectPool<T>` has been part of `UnityEngine.CoreModule` since Unity 2021.1 (confirmed available on the pinned `2021.3.45f2` by compile — no package needed) and already handles capacity limits and double-release detection (`collectionCheck: true`) correctly, which a hand-rolled version would have to reimplement and re-test | Writing a custom pool from scratch (more code to test/maintain for no benefit — golden rule 1: where the brief is silent on *how*, use modern Unity best practice) |
+| 19 | `Health.Damaged`/`Health.Died` are plain per-instance C# events, not a shared `GameEventChannel<T>` from the Events module (Report 008) — refines the Phase-0 module map, which listed Combat as depending on Events | Every unit/building will own its *own* `Health` instance; a shared/global SO channel would broadcast every instance's HP changes to every listener, which is the wrong shape for "this specific soldier took damage." Plain instance events are the correct decoupling tool here (raiser and the one interested listener — that instance's own controller/view — share the `Health` object reference directly), while a global channel remains right for genuinely cross-system, one-of-a-kind signals (e.g. a future `SelectionChanged`) | Routing every `Health` instance's events through a shared `GameEventChannel<Health>` — would require every listener to filter for "is this event about the instance I care about", solving a problem that doesn't exist here |
+| 20 | Added a minimal `UnitDefinition` (SO, data only: name/sprite/footprint/HP/attack damage) under `CaseGame.Units` as part of the Buildings feature, ahead of the full Units feature (Report 009) | Brief requirement 2 explicitly mandates `BuildingDefinition` reference a list of `UnitDefinition`s (data-driven producible units, not switch-cased) — `BuildingDefinition` can't compile without the type existing. This is a data-only stub, not scope creep into Units' actual behavior (`SoldierBase`/`Soldier1/2/3`/`UnitFactory` still land as their own feature) | Making `BuildingDefinition`'s producible list untyped (`object`/string names) to defer the dependency — would give up compile-time safety and contradict the brief's explicit `UnitDefinition` reference mandate |
+| 21 | `BuildingBase.Initialize(definition, onDied)` takes an optional death callback instead of knowing about `PrefabPool<T>`/pooling itself; `BuildingFactory.Create` wires `() => pool.Release(instance)` as that callback | Keeps `BuildingBase` single-responsibility (HP/sprite only) and testable via a plain callback with no pool in the test at all; the Factory is the one thing that knows both "this instance came from a pool" and "this instance died," so it's the natural place to connect the two | `BuildingBase` holding a direct reference to its own pool (couples the humble building class to a pooling implementation detail it doesn't need to know about) |

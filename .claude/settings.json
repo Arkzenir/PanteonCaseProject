@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tasklist *)",
+      "Bash(dotnet build \"PanteonCaseProject.sln\" -nologo -v q)"
+    ]
+  }
+}
