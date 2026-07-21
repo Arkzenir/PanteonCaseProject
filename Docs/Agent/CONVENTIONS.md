@@ -88,5 +88,16 @@ Assets/
 ---
 
 ## Project-specific overrides (rewritten per brief)
-_None yet. Populated during brief ingestion. Each entry: what the brief mandates, what
-baseline rule it replaces, and a pointer to the brief section._
+
+| Brief mandate | Baseline rule replaced | Brief section |
+|---|---|---|
+| **Singleton pattern is required** (at minimum for `GameManager`). Still isolate behind a minimal interface at call sites where practical, and don't let it sprawl into a general service locator. | "no cross-system singletons unless the brief mandates them" (Code standards → Decoupling) | DESIGN → Design Patterns |
+| **MVC-style separation is required**, not just encouraged: Model = ScriptableObject definitions (`BuildingDefinition`, `UnitDefinition`) + plain C# state (`Health`, combat), View = rendering-only MonoBehaviours, Controller = input/event-wiring MonoBehaviours. | Reinforces existing "Humble MonoBehaviours" rule — no replacement, just made explicit and non-optional. | DESIGN → "UI and Logic should be separated... using techniques like MVC" |
+| **Object pooling is required** for the Production Menu's infinite scroll view (pool the list-item views), and used for units/buildings given the <20 draw-call budget and frequent spawn/destroy. | Reinforces existing "pool anything spawned repeatedly" rule. | UX → "Infinite Scrollview — Object Pooling"; DESIGN → Object Pooling; GI-12 |
+| **Pathfinding must be custom grid-based A\***, not Unity NavMesh/NavMesh2D. | N/A (baseline is silent on pathfinding) — but forecloses reaching for NavMesh as "best practice." | ALGORITHM → Pathfinding (A*) |
+| Game Board is a **discrete grid** (cell occupancy, world↔cell conversion). **Cell size is a designer-editable value on a `GridDefinition` SO, not a fixed constant** — chosen once art is finalized. New folder: `Scripts/Runtime/Grid/`. | N/A — new module, not a baseline replacement. | Human-confirmed, reference UI mockup; corrected — cell size not fixed |
+| **No resource/currency system** — do not add tuneable "cost" fields to production even though ScriptableObject-driven tuning is otherwise the baseline default for economy-like values. | Narrows "Configuration in ScriptableObjects, never hardcoded tuning values" — there is simply no tunable cost to configure. | GI-4 |
+| **Building/unit UI and factories must stay data-driven and generic** — no hardcoded per-type switch/enum branches in Production Menu or Info Panel UI, even though only Barracks + Power Plant + 3 soldiers ship. | Sharpens the baseline "Configuration in ScriptableObjects" + SOLID (open/closed) rule into a hard requirement rather than a nice-to-have. | Human-confirmed extensibility requirement |
+| Additional folders under `Scripts/Runtime/`: `Buildings/`, `Units/`, `Combat/`, `Pathfinding/`, `Placement/`, `Selection/`, `Pooling/`, `Events/`, `UI/Production/`, `UI/Info/`, `UI/MainMenu/`, `UI/Settings/` — mirrors the module map in ARCHITECTURE.md §2. | Extends (does not replace) the baseline "grouped by feature/domain, mirrors namespaces" rule. | Derived from GI-1–19 and DESIGN section collectively |
+| ScriptableObject asset naming for this project: `BuildingDef_<Name>.asset` (e.g. `BuildingDef_Barracks.asset`), `UnitDef_<Name>.asset` (e.g. `UnitDef_Soldier1.asset`) — more specific than the generic `Config_`/`Wave_` examples in the baseline table. | Specializes (does not replace) the baseline "Type-prefixed" SO naming rule. | GI-2, GI-9 |
+| Scene flow is `Boot.unity` → `MainMenu.unity` → `Gameplay.unity` (Main Menu with Play + Settings screen is human-mandated). | N/A — baseline already lists `MainMenu.unity` as an example scene name; this confirms it's actually used, not just an example. | Human-mandated, requirement 19 |
