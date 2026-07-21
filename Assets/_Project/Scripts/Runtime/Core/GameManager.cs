@@ -18,8 +18,8 @@ namespace CaseGame.Core
 
         public static IGameManager Instance => _instance;
 
-        [Tooltip("Scene to load on startup. Leave blank to load nothing automatically.")]
-        [SerializeField] private string firstSceneName;
+        [Tooltip("Scene to load on startup. Leave unassigned to load nothing automatically.")]
+        [SerializeField] private SceneReference firstScene;
 
         private void Awake()
         {
@@ -39,9 +39,9 @@ namespace CaseGame.Core
 
         private void Start()
         {
-            if (!string.IsNullOrEmpty(firstSceneName))
+            if (firstScene != null && firstScene.IsSet)
             {
-                LoadScene(firstSceneName);
+                LoadScene(firstScene.SceneName);
             }
         }
 

@@ -97,6 +97,12 @@ landed that these requirements will build on.
   found during Report 002's hand-test — `DontDestroyOnLoad` only accepts root GameObjects, but
   `GameManager` lives under the `--- SYSTEMS ---` organizer per CONVENTIONS.md, so it was
   throwing. Now targets `transform.root.gameObject`.
+- Report 004 (`Docs/Reports/004_scene-reference-asset-picker.md`): added `SceneReference`
+  (`CaseGame.Core`) — a reusable, Inspector-friendly scene-asset-picker wrapper — plus its
+  `SceneReferenceDrawer` (first script under `Assets/_Project/Scripts/Editor/`, new
+  `CaseGame.Editor` asmdef). `GameManager.firstScene` now uses it instead of a raw string
+  field. Project convention going forward: prefer typed asset-picker wrappers over raw string
+  fields for asset references (see `CONVENTIONS.md` overrides).
 
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
@@ -134,3 +140,4 @@ landed that these requirements will build on.
 | 8 | Building/unit system kept modular across every layer: data (SO defs), creation (Factories), and UI (Production Menu iterates definitions generically; producible-unit lists are data on `BuildingDefinition`, not switch-cased) — even though only Barracks + Power Plant + 3 soldiers ship | Human explicitly required extensibility beyond just the data layer: "all systems for buildings, including UI as well as the list of units it can spawn etc. should be modular and extensible" | Hardcoding a fixed enum/switch of building types in the Production Menu UI or elsewhere |
 | 9 | Added a Main Menu (`MainMenu.unity`) with Play + Settings (resolution/display-mode), inserted into scene flow as `Boot` → `MainMenu` → `Gameplay` | Human-mandated so the evaluator can exercise GI-13 (aspect ratio/resolution support) directly rather than only via editor Game-view resizing; brief's own resolution requirement is the stated reason | No main menu (original Phase-0 assumption, since superseded) |
 | 12 | `GameManager.Awake` calls `DontDestroyOnLoad(transform.root.gameObject)` instead of `DontDestroyOnLoad(gameObject)` (Report 003) | `DontDestroyOnLoad` only accepts root GameObjects; `GameManager` is a child of `--- SYSTEMS ---` per CONVENTIONS.md scene composition, so the un-rooted call threw at runtime (human caught this hand-testing Report 002). Persisting the whole root also matches ARCHITECTURE.md §4's intent that all of `--- SYSTEMS ---` (event channels, pools, etc., once they exist) survive scene loads together | Moving `GameManager` to scene root instead — would violate CONVENTIONS.md's "no loose objects at root" rule |
+| 13 | Added `SceneReference` (`CaseGame.Core`) as a reusable asset-picker wrapper for scene references, backed by an editor-only `SceneAsset` field synced to a runtime-safe `sceneName` string via `ISerializationCallbackReceiver`; added `SceneReferenceDrawer` so it still shows as a single object-picker field, not two raw fields. First script under `Scripts/Editor/`, first `CaseGame.Editor` asmdef (Report 004) | Human-mandated project convention: prefer typed asset-picker `SerializeField`s over raw strings for asset references, to avoid typo-prone/rename-unsafe hardcoded names — `GameManager.firstScene` was the first offender | Leaving `firstSceneName` as a raw string; using Unity's Build-Settings scene index instead (more fragile to reordering) |
