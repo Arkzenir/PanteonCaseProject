@@ -39,3 +39,13 @@ same command with `-testPlatform PlayMode` (only when a feature genuinely needs 
 - If the human has the Unity editor open, prefer mode A and ask the human to report any
   console errors after Unity's script reload — do not silently skip verification.
 - Never launch the Unity editor GUI. Batchmode only.
+- **MonoBehaviour lifecycle callbacks (`Awake`/`OnEnable`/etc.) do not reliably fire on
+  `AddComponent`-created objects inside `-runTests -testPlatform EditMode` on this machine** —
+  confirmed empirically (Report 002: `Debug.Log` in `Awake` never appeared even after 10
+  `yield return null` frames in a `[UnityTest]`). Do not write EditMode tests that depend on
+  Unity invoking `Awake`/`Start`/etc. for freshly created components; they will fail for
+  environment reasons, not logic bugs. For Singleton/bootstrap-style MonoBehaviours whose
+  logic is inherently lifecycle-bound, hand-test instead (Play Mode in the Editor) and say so
+  explicitly in the report, per CLAUDE.md's "purely presentational or editor-wired" carve-out.
+  If a future feature genuinely needs automated coverage of lifecycle behavior, reach for
+  PlayMode tests (`-testPlatform PlayMode`) rather than EditMode.
