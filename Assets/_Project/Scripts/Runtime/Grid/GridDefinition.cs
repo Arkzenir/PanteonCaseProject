@@ -16,6 +16,7 @@ namespace CaseGame.Grid
         [SerializeField] private Vector2 originWorldPosition = Vector2.zero;
         [SerializeField] private Color lineColor = new Color(1f, 1f, 1f, 0.35f);
         [SerializeField] private float lineThickness = 0.025f;
+        [SerializeField] private float terrainMargin = 30f;
 
         public float CellSize => cellSize;
         public int Columns => columns;
@@ -24,12 +25,16 @@ namespace CaseGame.Grid
         public Color LineColor => lineColor;
         public float LineThickness => lineThickness;
 
+        /// <summary>How far (world units) the environment's water backdrop extends beyond the grid's own bounds — the single source of truth both the baked terrain (<c>Terrain/Water</c> Tilemap) and <see cref="CameraControl.CameraController"/>'s pan/zoom bounds read, so the camera can never show past the water's own painted edge (human-requested, Report 031).</summary>
+        public float TerrainMargin => terrainMargin;
+
         private void OnValidate()
         {
             cellSize = Mathf.Max(cellSize, 0.01f);
             columns = Mathf.Max(columns, 1);
             rows = Mathf.Max(rows, 1);
             lineThickness = Mathf.Max(lineThickness, 0.001f);
+            terrainMargin = Mathf.Max(terrainMargin, 0f);
         }
     }
 }

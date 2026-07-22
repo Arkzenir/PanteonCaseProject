@@ -7,7 +7,21 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 030 (`Environment/terrain visuals`), 2026-07-22 — backlog item 17, scoped to
+**Last report:** 031 (`Camera bounds + terrain follow-up`), 2026-07-22 — human follow-up to Report
+030. (1) `GridDefinition` gained `TerrainMargin` (30 world units, up from Report 030's hardcoded
+20) as the single source of truth for how far the water backdrop extends — both the baked
+`Terrain/Water` Tilemap and `CameraController`'s new bounds read it, so they can't drift apart.
+(2) `CameraController` gained `SetBounds`/a pure `ClampToBounds`, applied after every `Pan`/`Zoom`
+— the camera can no longer show the background color/skybox past the water's own painted edge;
+`GameplayBootstrap` computes the bounds from `GridModel` + `TerrainMargin` and wires them in
+`Start()`. (3) Investigated `Tilemap_color1.png`'s actual intended usage via the pack's own
+shipped "Unity Tile Guide" documentation (`Assets/Tiny Swords/Terrain/Tileset/Unity Tile Guide/`)
+— confirms the flat "Water Background color" tile used in Report 030 is exactly the artist's
+intended "BG Color" layer. Manual Tile Palette instructions for painting the actual grass/cliff
+island (human will do this by hand, per their own offer) are in Report 031's checklist.
+209/209 EditMode tests passing.
+
+**Report 030 (`Environment/terrain visuals`), 2026-07-22** — backlog item 17, scoped to
 **purely decorative** per explicit human confirmation (no changes to grid occupancy/pathfinding).
 A flat solid-color water `Tile` is painted as a `Tilemap` frame around the grid's bounds
 (margin 20 world units), leaving the grid's own interior cells unpainted so the existing camera
@@ -192,12 +206,12 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–030):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–031):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
 ~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
-~~Environment/terrain visuals~~.
+~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the

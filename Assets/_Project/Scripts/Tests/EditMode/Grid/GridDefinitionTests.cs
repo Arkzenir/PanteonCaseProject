@@ -33,6 +33,19 @@ namespace CaseGame.Tests.EditMode.Grid
             Assert.AreEqual(new Color(1f, 1f, 1f, 0.35f), definition.LineColor);
         }
 
+        [Test]
+        public void OnValidate_ClampsTerrainMarginToAtLeastZero()
+        {
+            var definition = CreateDefinition();
+            var so = new SerializedObject(definition);
+            so.FindProperty("terrainMargin").floatValue = -5f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            InvokeOnValidate(definition);
+
+            Assert.AreEqual(0f, definition.TerrainMargin, 0.0001f);
+        }
+
         private static void InvokeOnValidate(GridDefinition definition)
         {
             typeof(GridDefinition)

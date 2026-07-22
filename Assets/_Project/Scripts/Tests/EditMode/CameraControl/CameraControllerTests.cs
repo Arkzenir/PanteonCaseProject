@@ -18,6 +18,7 @@ namespace CaseGame.Tests.EditMode.CameraControl
             _camera = _cameraGo.AddComponent<Camera>();
             _camera.orthographic = true;
             _camera.orthographicSize = 10f;
+            _camera.aspect = 1f; // deterministic for bounds-clamping math, independent of the test runner's screen/window size
             _cameraGo.transform.position = new Vector3(5f, 5f, -10f);
 
             _controller = _cameraGo.AddComponent<CameraController>();
@@ -92,6 +93,73 @@ namespace CaseGame.Tests.EditMode.CameraControl
             _controller.Zoom(-10f);
 
             Assert.AreEqual(16f, _camera.orthographicSize, 0.0001f);
+        }
+
+        [Test]
+        public void ClampToBounds_PositionWellInsideBounds_ReturnsUnchanged()
+        {
+            var result = CameraController.ClampToBounds(new Vector2(5f, 5f), orthographicSize: 2f, aspect: 1f, new Vector2(0f, 0f), new Vector2(20f, 20f));
+
+            Assert.AreEqual(new Vector2(5f, 5f), result);
+        }
+
+        [Test]
+        public void ClampToBounds_PastMaxX_ClampsSoViewportEdgeMeetsBoundsEdge()
+        {
+            // aspect 1, orthographicSize 2 => half-width 2; bounds max.x=20 => clamp position.x to 18.
+            var result = CameraController.ClampToBounds(new Vector2(25f, 5f), orthographicSize: 2f, aspect: 1f, new Vector2(0f, 0f), new Vector2(20f, 20f));
+
+            Assert.AreEqual(18f, result.x, 0.0001f);
+        }
+
+        [Test]
+        public void ClampToBounds_BeforeMinY_ClampsSoViewportEdgeMeetsBoundsEdge()
+        {
+            var result = CameraController.ClampToBounds(new Vector2(5f, -5f), orthographicSize: 2f, aspect: 1f, new Vector2(0f, 0f), new Vector2(20f, 20f));
+
+            Assert.AreEqual(2f, result.y, 0.0001f);
+        }
+
+        [Test]
+        public void ClampToBounds_ViewportWiderThanBounds_CentersOnThatAxisInstead()
+        {
+            // orthographicSize 20 over a 10-unit-wide bounds region => can't fit, so center on (min+max)/2 = 5.
+            var result = CameraController.ClampToBounds(new Vector2(2f, 5f), orthographicSize: 20f, aspect: 1f, new Vector2(0f, 0f), new Vector2(10f, 100f));
+
+            Assert.AreEqual(5f, result.x, 0.0001f);
+        }
+
+        [Test]
+        public void SetBounds_ImmediatelyClampsCurrentPosition()
+        {
+            _controller.SetBounds(new Vector2(-1f, -1f), new Vector2(1f, 1f));
+
+            var position = _cameraGo.transform.position;
+            Assert.LessOrEqual(position.x, 1f);
+            Assert.LessOrEqual(position.y, 1f);
+        }
+
+        [Test]
+        public void Pan_PastSetBounds_StopsAtTheBoundsEdge()
+        {
+            _controller.SetBounds(new Vector2(-1000f, -1000f), new Vector2(1000f, 1000f));
+
+            _controller.Pan(new Vector2(-1000000f, 0f), 1000f); // huge drag, would fly far past bounds unclamped
+
+            // orthographicSize 10, aspect 1 => half-width 10; bounds max.x=1000 => clamps to 990.
+            Assert.AreEqual(990f, _cameraGo.transform.position.x, 0.0001f);
+        }
+
+        [Test]
+        public void Zoom_PastSetBounds_ReclampsPosition()
+        {
+            _controller.SetBounds(new Vector2(0f, 0f), new Vector2(10f, 10f));
+            _cameraGo.transform.position = new Vector3(5f, 5f, -10f);
+
+            _controller.Zoom(-10f); // zooms out to maxOrthographicSize (16), now wider than the 10-unit bounds
+
+            Assert.AreEqual(5f, _cameraGo.transform.position.x, 0.0001f);
+            Assert.AreEqual(5f, _cameraGo.transform.position.y, 0.0001f);
         }
     }
 }

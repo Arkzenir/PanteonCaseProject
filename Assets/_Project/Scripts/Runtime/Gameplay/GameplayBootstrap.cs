@@ -1,4 +1,5 @@
 using CaseGame.Buildings;
+using CaseGame.CameraControl;
 using CaseGame.Grid;
 using CaseGame.Placement;
 using CaseGame.Selection;
@@ -27,6 +28,7 @@ namespace CaseGame.Gameplay
         [SerializeField] private PlacementController placementController;
         [SerializeField] private SelectionController selectionController;
         [SerializeField] private UnitProductionController unitProductionController;
+        [SerializeField] private CameraController cameraController;
 
         private void Start()
         {
@@ -38,6 +40,15 @@ namespace CaseGame.Gameplay
             placementController.Initialize(grid, buildingFactory);
             selectionController.Initialize(grid, projectileFactory);
             unitProductionController.Initialize(unitFactory, grid);
+
+            // Camera pan/zoom stays within the environment's water backdrop (Report 031,
+            // human-requested) — computed from the same GridModel + GridDefinition.TerrainMargin
+            // the terrain itself is painted with, so the two can never drift out of sync.
+            var margin = gridView.Definition.TerrainMargin;
+            var marginVector = new Vector2(margin, margin);
+            var boundsMin = grid.CellToWorld(Vector2Int.zero) - marginVector;
+            var boundsMax = grid.CellToWorld(new Vector2Int(grid.Columns, grid.Rows)) + marginVector;
+            cameraController.SetBounds(boundsMin, boundsMax);
         }
     }
 }

@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 41857eda0240b0a49945212bbd4ec4e6, type: 3}
   m_Name: GridDef_Default
   m_EditorClassIdentifier: 
-  cellSize: 0.5
+  cellSize: 1
   columns: 20
   rows: 12
   originWorldPosition: {x: 0, y: 0}
   lineColor: {r: 1, g: 1, b: 1, a: 0.4392157}
   lineThickness: 0.025
+  terrainMargin: 30

@@ -33,6 +33,7 @@ namespace CaseGame.Grid
         private float _lastBuiltLineThickness;
 
         public GridModel GridModel => _gridModel;
+        public GridDefinition Definition => gridDefinition;
         public bool LinesVisible => _meshRenderer != null && _meshRenderer.enabled;
 
         /// <summary>Toggles whether the grid lines render at all — the feature's "toggleable on/off" requirement. Plain method rather than an event channel: this is local render state on this one instance, nothing else needs to react to it.</summary>
