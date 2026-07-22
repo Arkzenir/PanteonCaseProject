@@ -23,16 +23,17 @@ other.
 | Core | `CaseGame.Core` | Bootstrapping, the one sanctioned Singleton (`GameManager`), scene/system lifecycle | Events |
 | Grid | `CaseGame.Grid` | Grid data model: cell size/bounds (fully designer-editable via a `GridDefinition` SO — no fixed pixel size, set once art is chosen), occupancy, world↔cell conversion, placement validity queries | Core |
 | Entities | `CaseGame.Entities` | `GameEntityDefinition` (abstract SO: name/sprite/footprint/maxHealth) and `GameEntityBase` (abstract MonoBehaviour: owns a `Health`, implements `IDamageable`, sprite assignment, death callback, and — as of Report 015 — `SetSelected(bool)`, a shared selection-tint visual both Buildings and Units get for free) — shared by Buildings and Units so neither duplicates this shape (see decisions log #22) | Combat |
-| Buildings | `CaseGame.Buildings` | `BuildingBase` (: `GameEntityBase`), `Barracks`, `PowerPlant`, `BuildingDefinition` (: `GameEntityDefinition`), `BuildingFactory`; as of Report 014 also `BuildingCatalogEntry`/`BuildingCatalog` (the Production Menu's data source — a `Definition`+prefab pair per producible building) `BuildingCatalogEntryEventChannel` (typed event channel carrying a "produce this" request — kept in this namespace since the payload is Buildings-domain data both Placement and UI.Production already depend on Buildings, see decisions log #32), and (Report 015) `SelectedBuildingEventChannel` (same reasoning — Selection raises it, the future Info Panel will consume it) | Entities, Pooling, Units, Events |
-| Units | `CaseGame.Units` | `SoldierBase` (: `GameEntityBase`, adds `MoveTo`/`TryAttack`), `Soldier` (the one concrete type — 3 soldier variants are `UnitDefinition` data, not 3 classes, see decisions log #26), `UnitDefinition` (: `GameEntityDefinition`), `UnitFactory` | Entities, Grid, Pathfinding, Combat |
+| Buildings | `CaseGame.Buildings` | `BuildingBase` (: `GameEntityBase` — as of Report 017 also a virtual `SpawnPosition`, default `transform.position`, so any building can be asked "where do your products spawn" without a type-check, see decisions log #42), `Barracks` (overrides `SpawnPosition`), `PowerPlant`, `BuildingDefinition` (: `GameEntityDefinition`; `ProducibleUnits` is `List<UnitCatalogEntry>` as of Report 017 — was `List<UnitDefinition>`, see decisions log #41), `BuildingFactory`; as of Report 014 also `BuildingCatalogEntry`/`BuildingCatalog` (the Production Menu's data source — a `Definition`+prefab pair per producible building) `BuildingCatalogEntryEventChannel` (typed event channel carrying a "produce this" request — kept in this namespace since the payload is Buildings-domain data both Placement and UI.Production already depend on Buildings, see decisions log #32), and (Report 015) `SelectedBuildingEventChannel` (same reasoning — Selection raises it, the Info Panel consumes it) | Entities, Pooling, Units, Events |
+| Units | `CaseGame.Units` | `SoldierBase` (: `GameEntityBase`, adds `MoveTo`/`TryAttack`), `Soldier` (the one concrete type — 3 soldier variants are `UnitDefinition` data, not 3 classes, see decisions log #26), `UnitDefinition` (: `GameEntityDefinition`), `UnitFactory`; as of Report 017 also `UnitCatalogEntry` (`UnitDefinition` + prefab pair, mirrors `BuildingCatalogEntry`), `UnitProductionRequest`/`UnitProductionRequestEventChannel` (a clicked producible-unit icon's "produce this, here" request), and `UnitProductionController` (Controller: subscribes, spawns via `UnitFactory`, positions at the requested spawn point — see decisions log #43/#44) | Entities, Grid, Pathfinding, Combat, Events |
 | Combat | `CaseGame.Combat` | `IDamageable`, `Health` (HP, damage, death via plain per-instance C# events — see decisions log #19) | — |
 | Pathfinding | `CaseGame.Pathfinding` | `AStarPathfinder`: static, tested 8-directional grid A* with corner-cutting prevention ("wander around buildings," GI-7/8). No request-queue/coroutine layer yet — added if a real caller (Units movement) shows it's needed | Grid |
-| Placement | `CaseGame.Placement` | `BuildingGhostView` (View: toggles a desaturated ghost silhouette, tinted green/red, vs. the real sprite — see decisions log #28) and `PlacementController` (Controller: mouse→cell, validity query, commit-to-grid, and — as of Report 014 — subscribes to `BuildingCatalogEntryEventChannel` to start placement when the Production Menu raises a "produce" request) | Grid, Buildings, Events |
-| Selection | `CaseGame.Selection` | `SelectionController`: left-click select (plain click replaces, shift-click adds/removes a soldier — GI-7/8's "unit(s)"), right-click move-or-attack (GI-7/8/10/11 — attack takes priority over movement when the cursor is over an `IDamageable`). Selecting a building and selecting soldiers are mutually exclusive; visual feedback is `GameEntityBase.SetSelected`, no new prefab wiring. Raises `SelectedBuildingEventChannel` on building-selection change | Units, Buildings, Grid, Combat, Events |
+| Placement | `CaseGame.Placement` | `BuildingGhostView` (View: toggles a desaturated ghost silhouette, tinted green/red, vs. the real sprite — see decisions log #28) and `PlacementController` (Controller: mouse→cell, validity query, commit-to-grid, and — as of Report 014 — subscribes to `BuildingCatalogEntryEventChannel` to start placement when the Production Menu raises a "produce" request; as of Report 017, `Update()` also skips world input while the pointer is over UI, see decisions log #47) | Grid, Buildings, Events |
+| Selection | `CaseGame.Selection` | `SelectionController`: left-click select (plain click replaces, shift-click adds/removes a soldier — GI-7/8's "unit(s)"), right-click move-or-attack (GI-7/8/10/11 — attack takes priority over movement when the cursor is over an `IDamageable`). Selecting a building and selecting soldiers are mutually exclusive; visual feedback is `GameEntityBase.SetSelected`, no new prefab wiring. Raises `SelectedBuildingEventChannel` on building-selection change; as of Report 017, `Update()` also skips world input while the pointer is over UI (decisions log #47) | Units, Buildings, Grid, Combat, Events |
+| Gameplay | `CaseGame.Gameplay` | `GameplayBootstrap` (Report 017) — `Gameplay.unity`'s composition root: the one place that builds `BuildingFactory`/`UnitFactory` with a real container `Transform` and calls `PlacementController`/`SelectionController`/`UnitProductionController`'s `Initialize` from `Start()` (runs after every object's `Awake`, unlike relying on Awake-order between them and whoever owns the `GridModel`). Holds no gameplay logic itself — see decisions log #45 for why this is its own module rather than living in Core | Grid, Buildings, Units, Placement, Selection |
 | Pooling | `CaseGame.Pooling` | Generic `ObjectPool<T>` used by the scroll view and by frequently spawned/destroyed units/buildings | — |
 | Events | `CaseGame.Events` | Lightweight C# event channels (plain events and/or SO event channels) connecting the above without direct references | — |
 | UI.Production | `CaseGame.UI.Production` | `ScrollRecycler` (plain C#: given item count/pool size/scroll offset, decides which data index each pooled slot shows and where — the actual "infinite, object-pooled scroll" math, tested independent of Unity UI), `ProductionMenuItemView` (View: one pooled, rebindable row), `ProductionMenuController` (Controller: owns the `PrefabPool<ProductionMenuItemView>`, applies `ScrollRecycler`'s decisions to `ScrollRect`). Iterates `BuildingCatalog` **generically** (no per-type UI branches); a row's "produce" click raises `BuildingCatalogEntryEventChannel` — Placement listens, so neither module references the other | Pooling, Buildings, Events |
-| UI.Info | `CaseGame.UI.Info` | `InfoPanelController` (subscribes to `SelectedBuildingEventChannel`; shows the selected building's image/name, hides entirely for null/soldier selection) and `ProducibleUnitIconView` (small non-interactive icon per producible unit, spawned generically off `BuildingDefinition.ProducibleUnits` — requirement 6's "Power Plant needs no production sub-menu" falls out for free as an empty list, no per-type branch) | Events, Buildings, Units |
+| UI.Info | `CaseGame.UI.Info` | `InfoPanelController` (subscribes to `SelectedBuildingEventChannel`; shows the selected building's image/name, hides entirely for null/soldier selection) and `ProducibleUnitIconView` (icon per producible unit, spawned generically off `BuildingDefinition.ProducibleUnits` — requirement 6's "Power Plant needs no production sub-menu" falls out for free as an empty list, no per-type branch). As of Report 017 these icons are **clickable** — this row *is* GI-6's "production sub-menu," so clicking one raises `UnitProductionRequestEventChannel` (`CaseGame.Units`); see decisions log #44 for why Report 016 originally built this non-interactive and what changed | Events, Buildings, Units |
 | UI.MainMenu | `CaseGame.UI.MainMenu` | Main Menu screen: Play button → loads `Gameplay.unity` | Core |
 | UI.Settings | `CaseGame.UI.Settings` | Settings screen: resolution / display-mode selection, applied via `Screen.SetResolution` | Core |
 
@@ -67,43 +68,53 @@ updates, publishing/subscribing via Events rather than reaching into each other 
   Loads `MainMenu.unity` on start.
 - `MainMenu.unity` — Play button → loads `Gameplay.unity`; Settings screen for
   resolution/display-mode (demonstrates GI-13, human-mandated requirement 19).
-- `Gameplay.unity` — the actual demo: Game Board (grid), Production Menu (UI), Information
-  Panel (UI). Hierarchy uses top-level organizers per CONVENTIONS.md: `--- SYSTEMS ---`,
-  `--- ENVIRONMENT ---` (grid/board), `--- GAMEPLAY ---` (spawned buildings/units container),
-  `--- UI ---` (Production Menu, Information Panel, Canvas). As of Report 016, `--- UI ---`
-  exists with a `Canvas` (`ScaleWithScreenSize`, 1920×1080 reference), an `EventSystem`
-  (`InputSystemUIInputModule`), the `ProductionMenu` scroll view (`ProductionMenuController`,
-  wired to `BuildingCatalog_Default.asset`, left-anchored), and `InformationPanel`
-  (`InfoPanelController`, wired to `SelectedBuildingEvent_Default.asset`, right-anchored,
-  starts inactive); `--- SYSTEMS ---` and `--- GAMEPLAY ---` don't exist yet — still Gameplay
-  scene assembly's job.
-- Key prefabs (added as each feature lands), all under `Assets/_Project/Prefabs/`:
+- `Gameplay.unity` — the actual demo. As of Report 017, fully assembled:
+  - `--- ENVIRONMENT ---`: `Main Camera` (orthographic, reframed on the grid — see decisions
+    log #48), `Global Light 2D`, `Grid` (`GridView`, wired to `GridDef_Default.asset`).
+  - `--- SYSTEMS ---`: `PlacementController` (wired: `gameCamera` = Main Camera,
+    `produceRequestedChannel` = `BuildingCatalogEntryEvent_Default.asset`), `SelectionController`
+    (wired: `gameCamera` = Main Camera, `selectedBuildingChannel` = `SelectedBuildingEvent_Default.asset`),
+    `UnitProductionController` (wired: `produceRequestedChannel` = `UnitProductionRequestEvent_Default.asset`),
+    `GameplayBootstrap` (wired to `Grid`'s `GridView` and the three controllers above, plus the
+    `--- GAMEPLAY ---` containers below — `Start()` builds the Factories and calls each
+    controller's `Initialize`).
+  - `--- GAMEPLAY ---`: `Buildings` and `Units` (empty container Transforms — `BuildingFactory`/
+    `UnitFactory`'s pooled instances parent here at runtime).
+  - `--- UI ---`: `Canvas` (`ScaleWithScreenSize`, 1920×1080 reference), `EventSystem`
+    (`InputSystemUIInputModule`), `ProductionMenu` (`ProductionMenuController`, left-anchored,
+    wired to `BuildingCatalog_Default.asset`), `InformationPanel` (`InfoPanelController`,
+    right-anchored, starts inactive, wired to `SelectedBuildingEvent_Default.asset`).
+- Key prefabs, all under `Assets/_Project/Prefabs/`:
   `Buildings/Building_Barracks.prefab` + `Building_PowerPlant.prefab` (human-created after
-  Report 009) — each a parent GameObject with `Visuals` (SpriteRenderer), `Hitbox` (collider,
-  for future selection), and (Barracks only) `SpawnPoint` as children. `Units/Soldier_1.prefab`,
+  Report 009, `Hitbox` collider added per Report 015's hookup) — a parent GameObject with
+  `Visuals` (SpriteRenderer), `VisualsGrayscale` (Report 013's ghost), `Hitbox` (`BoxCollider2D`,
+  trigger), and (Barracks only) `SpawnPoint` as children. `Units/Soldier_1.prefab`,
   `Soldier_2.prefab`, `Soldier_3.prefab` (human-created after Report 012, same `<Category>_<Name>`
-  naming as the buildings) — same `Visuals`/`Hitbox` child structure, `Soldier` component on
-  the root. `UI/ProductionMenuItem.prefab` (Report 014, agent-created via throwaway script) —
-  `Icon` (Image) + `Name` (TMP text) children, `Button` + `ProductionMenuItemView` on the root;
-  no `<Category>_` prefix since there's no family of named variants to disambiguate, unlike the
-  building/unit prefabs. `UI/ProducibleUnitIcon.prefab` (Report 016, same agent-created pattern)
-  — same `Image`/`Name` shape, no `Button` (purely informational, see decisions log #40). All
-  per CONVENTIONS.md's per-prefab grouping convention. Still to come: ghost/preview prefab for
-  placement (reuses the building prefabs themselves, see decisions log #29 — nothing separate
-  needed).
+  naming, `Hitbox` collider added per Report 015) — same `Visuals`/`Hitbox` child structure,
+  `Soldier` component on the root. `UI/ProductionMenuItem.prefab` (Report 014) — `Icon`
+  (Image) + `Name` (TMP text) children, `Button` + `ProductionMenuItemView` on the root; no
+  `<Category>_` prefix since there's no family of named variants to disambiguate.
+  `UI/ProducibleUnitIcon.prefab` (Report 016, **rebuilt in Report 017** with an added `Button` —
+  see decisions log #44) — same `Image`/`Name` shape, now clickable. All agent-created prefabs
+  built/rebuilt via throwaway editor scripts, verified by reading the generated files back
+  rather than trusting a clean exit code. All per CONVENTIONS.md's per-prefab grouping
+  convention. Ghost/preview prefab for placement: none needed, reuses the building prefabs
+  themselves (decisions log #29).
 - SO definition/config assets live under `Assets/_Project/ScriptableObjects/`: `GridDef_Default.asset`,
-  `BuildingCatalog_Default.asset`, `BuildingCatalogEntryEvent_Default.asset` (Report 014), and
-  `SelectedBuildingEvent_Default.asset` (Report 016) at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` +
-  `BuildingDef_PowerPlant.asset`, and `GameEntityDefs/Units/UnitDef_Soldier1.asset` +
-  `UnitDef_Soldier2.asset` + `UnitDef_Soldier3.asset` — human's own organization, renamed from
-  an earlier `ScriptableObjects/Units/{Buildings,Troops}/` pass to `GameEntityDefs/` once the
+  `BuildingCatalog_Default.asset`, `BuildingCatalogEntryEvent_Default.asset` (Report 014),
+  `SelectedBuildingEvent_Default.asset` (Report 016), and `UnitProductionRequestEvent_Default.asset`
+  (Report 017) at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` +
+  `BuildingDef_PowerPlant.asset` (Report 017: `producibleUnits` populated with Soldier 1/2/3;
+  `entityName` fixed — see decisions log #46), and `GameEntityDefs/Units/UnitDef_Soldier1.asset` +
+  `UnitDef_Soldier2.asset` + `UnitDef_Soldier3.asset` (Report 017: `entityName`/Soldier 3's stats
+  fixed, same decision) — human's own organization, renamed from an earlier
+  `ScriptableObjects/Units/{Buildings,Troops}/` pass to `GameEntityDefs/` once the
   `GameEntityDefinition` shared base landed (Report 010), which is a more accurate name for
   what the folder actually holds. `GameEntityDefs/` is reserved for `GameEntityDefinition`
-  subclasses specifically — `BuildingCatalog`/the event channel are config/data assets, not
+  subclasses specifically — `BuildingCatalog`/event channels are config/data assets, not
   entity definitions, so they stay at the SO root alongside `GridDef_Default.asset`.
 - This section is updated feature-by-feature as prefabs/assets are actually created — treat
-  the above as current inventory as of Report 014, and whatever's still listed as "to come" as
-  the plan, not yet built.
+  the above as current inventory as of Report 017.
 
 ## 5. Brief-mandated requirements checklist
 Tracks BRIEF.md's "Hard requirements" 1–19 by number. No single numbered requirement is
@@ -277,6 +288,53 @@ landed that these requirements will build on.
   its own `SetSelectedBuilding` was called directly by tests, not because anything in the scene
   is driving it.
 
+- Report 017 (`Docs/Reports/017_gameplay-scene-assembly.md`): **Gameplay scene assembly** —
+  the integration feature. Per the human's explicit request, this pass started with a full
+  audit of every existing module before touching the scene, and found real gaps rather than
+  just wiring what already existed cleanly together:
+  - **Units were never actually producible.** The Production Menu only lists buildings; the
+    Info Panel's producible-unit icons (Report 016) were built non-interactive; and
+    `BuildingDefinition.ProducibleUnits` had no way to know which *prefab* to spawn for a given
+    `UnitDefinition`. Re-reading requirements 5/6 together confirmed the Info Panel's
+    producible-unit row *is* GI-6's "production sub-menu" — so it needed to be the click target,
+    not just a display. Fixed: `BuildingDefinition.ProducibleUnits` is now `List<UnitCatalogEntry>`
+    (mirrors `BuildingCatalogEntry`, decisions log #41); `BuildingBase` gained a virtual
+    `SpawnPosition` (#42) so resolving "where do this building's products appear" needs no
+    per-type cast; `ProducibleUnitIconView` is now clickable and raises the new
+    `UnitProductionRequestEventChannel` (`CaseGame.Units`) carrying a `UnitProductionRequest`
+    (catalog entry + spawn position, bundled to avoid a circular Units→Selection dependency,
+    #43/#44); a new `UnitProductionController` subscribes and spawns via `UnitFactory`.
+  - **Two data bugs, found reading the actual asset YAML, not assumed correct.**
+    `BuildingDef_Barracks`/`BuildingDef_PowerPlant` still serialized a stale `buildingName`
+    field predating the `entityName` rename in Report 010 — `entityName` had been sitting empty
+    this whole time, which would have shown blank building names on the Production Menu/Info
+    Panel. `UnitDef_Soldier3` had `maxHealth: 1`/`attackDamage: 1` instead of the brief's
+    explicit 10 HP / 2 damage (requirement 9). Both fixed via the same asset-touching script,
+    documented rather than silently changed (decisions log #46).
+  - **UI vs. world input conflict.** `PlacementController`/`SelectionController` read
+    `Mouse.current` directly every frame with no awareness of whether the pointer was over a UI
+    element — meaning clicking a Production Menu row would *also* fire a world-space
+    commit/cancel or select/deselect at whatever was on-screen underneath the panel. Fixed by
+    gating both `Update()`s on `EventSystem.current.IsPointerOverGameObject()` (decisions log
+    #47) — standard Unity practice for exactly this conflict, not previously needed since no
+    controller reading raw pointer input coexisted with clickable UI in the same scene until now.
+  - **The actual wiring.** New `CaseGame.Gameplay` module, `GameplayBootstrap` (composition
+    root — see decisions log #45 for why this isn't in Core): builds `BuildingFactory`/
+    `UnitFactory` with real `--- GAMEPLAY ---` container Transforms and calls
+    `PlacementController`/`SelectionController`/`UnitProductionController`'s `Initialize` from
+    `Start()`. All three controllers, plus `GameplayBootstrap` itself, now live under a new
+    `--- SYSTEMS ---` organizer, fully wired to the real event channel assets from Reports
+    014–016. Camera repositioned/resized to frame the grid within the screen area the
+    Production Menu/Info Panel don't occlude — computed from `GridDef_Default.asset` and the
+    panels' known fixed UI width, **not visually verified** (decisions log #48; flagged for
+    hand-test).
+  - **Scope check, not scope creep.** Draw-call/batching verification and the Windows build
+    export remain separate, later roadmap items — this report is integration and the bugs it
+    surfaced, nothing beyond.
+  - Every module in the Phase-0 plan is now wired into a live scene; nothing was hand-tested by
+    a human yet (the agent cannot enter Play Mode) — see the report's audit checklist for what
+    to verify.
+
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
 - [ ] 3. Building placement with invalid-area feedback; name/image/dimensions
@@ -341,3 +399,11 @@ landed that these requirements will build on.
 | 38 | `GameEntityBase.Initialize` now resets `spriteRenderer.color` to white every call (Report 015) | Necessary correctness fix, not a stylistic addition: `SetSelected` (this report) makes sprite color stateful, and instances are pooled/reused (`BuildingFactory`/`UnitFactory`) — without the reset, an instance released while selected would start its *next* life pre-tinted yellow, a real bug the moment Selection exists, not a hypothetical one | Leaving color-reset to whoever adds selection visuals to a *specific* type later — would silently reintroduce the bug for every pooled type, since the root cause (pooling + stateful color) lives in the shared base |
 | 39 | `SelectionController.HandleRightClick` prunes dead/null soldiers from the selection (`_selectedSoldiers.RemoveAll(s => s == null \|\| s.IsDead)`) at the point of use, rather than proactively unsubscribing from a death event as soon as a soldier is deselected-by-dying (Report 015) | Handles the realistic case (a selected soldier dies, sits inactive in its pool, hasn't been reused yet) with one line and no event-subscription bookkeeping. The narrower race — a dead selected soldier's pooled instance gets reused as a *different* soldier before the player's next right-click — is a known, accepted, documented limitation, not silently ignored: pruning by `IsDead` can't catch a reused instance still passing sanity as "not dead" | Subscribing to each selected soldier's death individually (would need a per-instance-death event GameEntityBase doesn't currently expose, plus careful subscribe/unsubscribe pairing on every selection change) to close a race that's unlikely to matter for a demo project of this scope |
 | 40 | `InfoPanelController`'s producible-unit icons are plain `Instantiate`/`Destroy` per selection change, not pooled via `PrefabPool<T>` (Report 016) | The brief ties Object Pooling specifically to the Production Menu's *infinite* scroll view (UX section) and to frequently spawned/destroyed units/buildings (decision #4) — this list is always small (≤3 today, bounded by however many `UnitDefinition`s a `BuildingDefinition` lists) and only rebuilds on the rare "selection changed" event, not every frame or even every second. Pooling it would need an arbitrary pool-size guess with no data-driven contract behind it, for a churn rate pooling doesn't meaningfully help | Reusing `PrefabPool<ProducibleUnitIconView>` for consistency with `ProductionMenuController` — would apply the same tool to a problem it doesn't have (over-engineering, golden rule 2) |
+| 41 | `BuildingDefinition.ProducibleUnits` changed from `List<UnitDefinition>` to `List<UnitCatalogEntry>` (a `UnitDefinition` + `SoldierBase` prefab pair, mirroring `BuildingCatalogEntry`) (Report 017) | Nothing anywhere in the project could answer "which prefab do I instantiate for this producible unit" — `UnitFactory.Create` needs both a definition and a prefab, but `BuildingDefinition` only ever stored the definition. Confirmed safe to change (not just theoretically cleaner): both `BuildingDef_Barracks`/`BuildingDef_PowerPlant`'s `producibleUnits` were still `[]` (empty) when this was found, so no authored data was lost | A separate global `UnitCatalog` registry (mirroring `BuildingCatalog`) that `InfoPanelController` looks up prefabs from — redundant, since `BuildingDefinition.ProducibleUnits` is already the complete, per-building list this problem needs; a global catalog would just be a second place the same definitions have to be kept in sync |
+| 42 | `BuildingBase` gained a `public virtual Vector3 SpawnPosition => transform.position`; `Barracks` now *overrides* it (was previously its own unrelated property) (Report 017) | `InfoPanelController`/`UnitProductionController` need "where do this building's products spawn" for *any* building capable of producing units — hardcoding a cast to `Barracks` there would violate the project's own established no-per-type-branch discipline (decisions #8/#32/#35's data-driven-generic thread) the moment a second unit-producing building type ever exists. Polymorphism is literally the brief-mandated tool for exactly this ("OOP: Polymorphism, Inheritance") | Type-checking/casting to `Barracks` wherever a spawn position is needed — works today (only Barracks produces units) but bakes in a per-type branch the rest of the project deliberately avoids |
+| 43 | `UnitProductionRequest` (plain struct: a `UnitCatalogEntry` + a `Vector3` spawn position) bundles the spawn position directly, rather than `UnitProductionController` looking up "whichever building is currently selected" itself (Report 017) | `UnitProductionController` (`CaseGame.Units`) would otherwise need a reference to `SelectionController` (`CaseGame.Selection`) to answer "where does this spawn" — but `Selection` already depends on `Units`, so that would be a circular module dependency. `InfoPanelController` already knows which building's row is being displayed when it binds each icon, so it's the natural place to supply the spawn position once, at bind time | `UnitProductionController` holding a `SelectionController` reference and reading `SelectedBuilding.SpawnPosition` at request time — circular dependency, and also subtly wrong if the selection changed between the icon being shown and being clicked |
+| 44 | `ProducibleUnitIconView` is now clickable (added a `Button`, raises `UnitProductionRequestEventChannel`) — reversing Report 016's explicit "purely informational, no button" design | Re-auditing requirements 5 and 6 together while assembling the full scene: the Production Menu only ever lists *buildings* (confirmed by `BuildingCatalog`'s actual content and `ARCHITECTURE.md`'s own module description), so the Info Panel's producible-unit row is the *only* place a unit is ever shown to the player — meaning it **must** be GI-6's "production sub-menu," not a passive display, or units could never be produced at all. This was a real, previously-unnoticed gap: nothing in the shipped code could ever spawn a soldier | Leaving it non-interactive and inventing some other production path (e.g. a second scroll view for units) — would contradict GI-6's own wording ("sub-menu") and duplicate UI.Production's already-built pooled-scroll machinery for a list that's always small, non-infinite, and doesn't need it |
+| 45 | New `CaseGame.Gameplay` module holding just `GameplayBootstrap`, rather than adding it to `CaseGame.Core` (Report 017) | `GameManager`/`SceneReference`/`IGameManager` are generic, reusable across *any* scene (Boot, MainMenu, Gameplay); `GameplayBootstrap` is specifically Gameplay.unity's own composition root, wiring Grid/Buildings/Units/Placement/Selection together — a fundamentally different, scene-specific concern that would otherwise dilute what "Core" means and give it a pile of gameplay-module dependencies it has no other reason to have | Putting it in `CaseGame.Core` anyway (was the original placeholder plan from Report 014) — technically works but conflates "generic app lifecycle" with "this one scene's assembly," and forces Core to depend on Grid/Buildings/Units/Placement/Selection for no benefit to Core itself |
+| 46 | Found and fixed two pre-existing data bugs while auditing the definition assets this feature touches, rather than leaving them (Report 017): (1) `BuildingDef_Barracks`/`BuildingDef_PowerPlant` had an empty `entityName` (a stale `buildingName` field from before Report 010's rename was still populated instead); (2) `UnitDef_Soldier3` had `maxHealth: 1`/`attackDamage: 1` instead of the brief's explicit 10 HP / 2 damage (requirement 9) | These are unambiguous correctness bugs, not judgment calls: (1) would show a blank building name on two UI panels this very feature just wired up, and (2) directly contradicts a numbered brief requirement. Both are asset-data-only fixes (no code/logic change), low-risk and easily reversible if the human disagrees with the correction — but silently leaving a known, explicit-requirement violation in place because it predates this feature would have been the wrong call | Leaving them for the human to notice separately — the brief's own evaluation criteria explicitly call out "edge cases will be examined" and correctness against the numbered requirements; finding this during an explicitly-requested integration audit and not acting on it would defeat the purpose of doing the audit |
+| 47 | `PlacementController`/`SelectionController`'s `Update()` now both check `EventSystem.current.IsPointerOverGameObject()` and skip world-input handling when true (Report 017) | Both read `Mouse.current` directly every frame with no UI awareness — before this feature, they never coexisted with clickable UI in the same live scene, so the conflict was latent, not yet manifest. Now that the Production Menu and Info Panel are both interactive *and* live in the same scene as these controllers, clicking a UI row would otherwise also fire a world-space commit/cancel/select/deselect at whatever happened to render underneath that screen position — standard Unity idiom, applied where it was newly needed | Leaving it unguarded — would produce a real, reproducible interaction bug (clicking "produce" also deselecting/cancelling) the very first time someone actually plays the assembled scene |
+| 48 | Camera repositioned to the grid's center and resized (orthographic size 10.5) via a formula derived from `GridDef_Default.asset`'s dimensions and the Production Menu/Info Panel's known fixed UI width (360 units each, 1920 reference width), rather than left at Unity's untouched default (0,0,-10, size 5) (Report 017) | The default camera was never pointed at the grid at all (grid spans world X:[0,20] Y:[0,12]; default camera framing shows mostly empty space below-left of it) — this needed *some* fix for the scene to be usable. The formula targets fitting the grid's width inside the screen strip the two side panels don't occlude, with modest padding | Leaving the camera untouched and asking the human to fix it by hand — the math is straightforward enough to compute directly; flagged as *unverified* (agent cannot enter Play Mode) rather than silently presented as correct, so the human knows to actually look at it |

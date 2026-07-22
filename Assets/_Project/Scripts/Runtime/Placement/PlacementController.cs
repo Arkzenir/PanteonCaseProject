@@ -1,6 +1,7 @@
 using CaseGame.Buildings;
 using CaseGame.Grid;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace CaseGame.Placement
@@ -129,6 +130,14 @@ namespace CaseGame.Placement
 
             var cell = _grid.WorldToCell(ScreenToWorld(Mouse.current.position.ReadValue()));
             UpdateGhostAt(cell);
+
+            // Clicks over UI (the Production Menu/Info Panel) shouldn't also act on the world
+            // underneath them — e.g. clicking a Production Menu row shouldn't simultaneously
+            // commit/cancel whatever ghost happens to be at that same screen position.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
 
             if (Mouse.current.rightButton.wasPressedThisFrame)
             {

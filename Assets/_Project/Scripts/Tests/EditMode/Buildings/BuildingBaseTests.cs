@@ -31,5 +31,17 @@ namespace CaseGame.Tests.EditMode.Buildings
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
         }
+
+        [Test]
+        public void SpawnPosition_DefaultsToTransformPosition()
+        {
+            var go = new GameObject("Building");
+            go.transform.position = new Vector3(3f, 4f, 0f);
+            var building = go.AddComponent<TestBuilding>();
+
+            Assert.AreEqual(go.transform.position, building.SpawnPosition);
+
+            Object.DestroyImmediate(go);
+        }
     }
 }

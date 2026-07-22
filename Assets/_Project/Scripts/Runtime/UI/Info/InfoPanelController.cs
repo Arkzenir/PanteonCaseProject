@@ -66,16 +66,17 @@ namespace CaseGame.UI.Info
             buildingIcon.sprite = building.Definition.Sprite;
             buildingNameText.text = building.Definition.EntityName;
 
-            foreach (var unitDefinition in building.Definition.ProducibleUnits)
+            var spawnPosition = building.SpawnPosition;
+            foreach (var entry in building.Definition.ProducibleUnits)
             {
-                SpawnProducibleUnitIcon(unitDefinition);
+                SpawnProducibleUnitIcon(entry, spawnPosition);
             }
         }
 
-        private void SpawnProducibleUnitIcon(UnitDefinition unitDefinition)
+        private void SpawnProducibleUnitIcon(UnitCatalogEntry entry, Vector3 spawnPosition)
         {
             var icon = Instantiate(producibleUnitIconPrefab, producibleUnitsContainer);
-            icon.Bind(unitDefinition);
+            icon.Bind(entry, spawnPosition);
             _producibleUnitIcons.Add(icon);
         }
 

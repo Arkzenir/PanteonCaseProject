@@ -12,8 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 59cb240decfba9c43af1b27f206e8bd0, type: 3}
   m_Name: BuildingDef_Barracks
   m_EditorClassIdentifier: 
-  buildingName: Barracks
+  entityName: Barracks
   sprite: {fileID: 21300000, guid: 4140465d2d71b4a6a83a1be32f0a9880, type: 3}
   footprint: {x: 4, y: 4}
   maxHealth: 100
-  producibleUnits: []
+  producibleUnits:
+  - definition: {fileID: 11400000, guid: 95daa7c029431af4ea48bb23395800bb, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: 8b076990c80ff5e4f89373b3a37da655, type: 3}
+  - definition: {fileID: 11400000, guid: 8dc15a7aed9132749a2e6342d644dc7d, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: 7cfb239ab59ec2c4eb74c350097bf253, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
+  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
+    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}

@@ -21,6 +21,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
         private TextMeshProUGUI _buildingNameText;
         private RectTransform _producibleUnitsContainer;
         private ProducibleUnitIconView _iconPrefab;
+        private Soldier _soldierPrefab;
         private InfoPanelController _controller;
         private readonly List<Object> _toDestroy = new List<Object>();
 
@@ -35,6 +36,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
             _producibleUnitsContainer = new GameObject("ProducibleUnits", typeof(RectTransform)).GetComponent<RectTransform>();
             _producibleUnitsContainer.SetParent(_panelRoot.transform);
 
+            _soldierPrefab = new GameObject("SoldierPrefab").AddComponent<Soldier>();
             _iconPrefab = CreateIconPrefab();
 
             _controller = new GameObject("InfoPanelController").AddComponent<InfoPanelController>();
@@ -61,6 +63,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
             Object.DestroyImmediate(_controller.gameObject);
             Object.DestroyImmediate(_panelRoot);
             Object.DestroyImmediate(_iconPrefab.gameObject);
+            Object.DestroyImmediate(_soldierPrefab.gameObject);
 
             foreach (var asset in _toDestroy)
             {
@@ -106,8 +109,8 @@ namespace CaseGame.Tests.EditMode.UI.Info
         [Test]
         public void SetSelectedBuilding_WithProducibleUnits_SpawnsOneIconPerUnit()
         {
-            var soldier1 = CreateUnitDefinition("Soldier 1");
-            var soldier2 = CreateUnitDefinition("Soldier 2");
+            var soldier1 = CreateUnitCatalogEntry("Soldier 1");
+            var soldier2 = CreateUnitCatalogEntry("Soldier 2");
             var building = CreateBuilding("Barracks", soldier1, soldier2);
 
             _controller.SetSelectedBuilding(building);
@@ -121,7 +124,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
         [Test]
         public void SetSelectedBuilding_ChangingBuilding_ReplacesOldIcons()
         {
-            var soldier1 = CreateUnitDefinition("Soldier 1");
+            var soldier1 = CreateUnitCatalogEntry("Soldier 1");
             var barracks = CreateBuilding("Barracks", soldier1);
             var powerPlant = CreateBuilding("Power Plant");
             _controller.SetSelectedBuilding(barracks);
@@ -137,7 +140,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
             return _controller.ProducibleUnitIcons[index].transform.Find("Name").GetComponent<TextMeshProUGUI>().text;
         }
 
-        private TestBuilding CreateBuilding(string name, params UnitDefinition[] producibleUnits)
+        private TestBuilding CreateBuilding(string name, params UnitCatalogEntry[] producibleUnits)
         {
             var definition = ScriptableObject.CreateInstance<BuildingDefinition>();
             var so = new SerializedObject(definition);
@@ -146,7 +149,9 @@ namespace CaseGame.Tests.EditMode.UI.Info
             for (var i = 0; i < producibleUnits.Length; i++)
             {
                 listProperty.InsertArrayElementAtIndex(i);
-                listProperty.GetArrayElementAtIndex(i).objectReferenceValue = producibleUnits[i];
+                var entryProperty = listProperty.GetArrayElementAtIndex(i);
+                entryProperty.FindPropertyRelative("definition").objectReferenceValue = producibleUnits[i].Definition;
+                entryProperty.FindPropertyRelative("prefab").objectReferenceValue = producibleUnits[i].Prefab;
             }
 
             so.ApplyModifiedPropertiesWithoutUndo();
@@ -158,14 +163,14 @@ namespace CaseGame.Tests.EditMode.UI.Info
             return building;
         }
 
-        private UnitDefinition CreateUnitDefinition(string name)
+        private UnitCatalogEntry CreateUnitCatalogEntry(string name)
         {
             var definition = ScriptableObject.CreateInstance<UnitDefinition>();
             var so = new SerializedObject(definition);
             so.FindProperty("entityName").stringValue = name;
             so.ApplyModifiedPropertiesWithoutUndo();
             _toDestroy.Add(definition);
-            return definition;
+            return new UnitCatalogEntry(definition, _soldierPrefab);
         }
 
         private static ProducibleUnitIconView CreateIconPrefab()
@@ -175,11 +180,13 @@ namespace CaseGame.Tests.EditMode.UI.Info
             icon.transform.SetParent(root.transform, false);
             var nameText = new GameObject("Name", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();
             nameText.transform.SetParent(root.transform, false);
+            var button = root.AddComponent<Button>();
 
             var view = root.AddComponent<ProducibleUnitIconView>();
             var so = new SerializedObject(view);
             so.FindProperty("iconImage").objectReferenceValue = icon;
             so.FindProperty("nameText").objectReferenceValue = nameText;
+            so.FindProperty("produceButton").objectReferenceValue = button;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             return view;

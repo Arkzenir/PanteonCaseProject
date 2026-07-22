@@ -5,6 +5,7 @@ using CaseGame.Entities;
 using CaseGame.Grid;
 using CaseGame.Units;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace CaseGame.Selection
@@ -182,6 +183,13 @@ namespace CaseGame.Selection
 
         private void Update()
         {
+            // Clicks over UI (the Production Menu/Info Panel) shouldn't also select/command
+            // whatever happens to be in the world underneath them.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
             if (Mouse.current.leftButton.wasPressedThisFrame)
             {
                 var worldPosition = ScreenToWorld(Mouse.current.position.ReadValue());

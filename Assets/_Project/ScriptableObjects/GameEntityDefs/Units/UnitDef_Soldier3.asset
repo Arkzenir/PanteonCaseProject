@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d6ce25c0fc3448443974796215961b4a, type: 3}
   m_Name: UnitDef_Soldier3
   m_EditorClassIdentifier: 
-  entityName: UnitDef_Soldier3
+  entityName: Soldier 3
   sprite: {fileID: -8426932590203072280, guid: c47a96ea76a32479fadb0e867cd08899, type: 3}
   footprint: {x: 1, y: 1}
-  maxHealth: 1
-  attackDamage: 1
+  maxHealth: 10
+  attackDamage: 2
   moveSpeed: 3

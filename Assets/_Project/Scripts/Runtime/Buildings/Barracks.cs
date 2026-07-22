@@ -10,6 +10,6 @@ namespace CaseGame.Buildings
     {
         [SerializeField] private Transform spawnPoint;
 
-        public Vector3 SpawnPosition => spawnPoint != null ? spawnPoint.position : transform.position;
+        public override Vector3 SpawnPosition => spawnPoint != null ? spawnPoint.position : base.SpawnPosition;
     }
 }

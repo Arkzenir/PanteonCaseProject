@@ -28,11 +28,12 @@ namespace CaseGame.Tests.EditMode.Buildings
             var so = new SerializedObject(definition);
             var listProperty = so.FindProperty("producibleUnits");
             listProperty.InsertArrayElementAtIndex(0);
-            listProperty.GetArrayElementAtIndex(0).objectReferenceValue = unitDefinition;
+            listProperty.GetArrayElementAtIndex(0).FindPropertyRelative("definition").objectReferenceValue = unitDefinition;
             so.ApplyModifiedPropertiesWithoutUndo();
 
             Assert.IsTrue(definition.CanProduceUnits);
             Assert.AreEqual(1, definition.ProducibleUnits.Count);
+            Assert.AreSame(unitDefinition, definition.ProducibleUnits[0].Definition);
 
             Object.DestroyImmediate(unitDefinition);
         }

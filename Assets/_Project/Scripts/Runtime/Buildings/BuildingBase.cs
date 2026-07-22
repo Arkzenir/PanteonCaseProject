@@ -1,4 +1,5 @@
 using CaseGame.Entities;
+using UnityEngine;
 
 namespace CaseGame.Buildings
 {
@@ -11,5 +12,8 @@ namespace CaseGame.Buildings
     public abstract class BuildingBase : GameEntityBase
     {
         public new BuildingDefinition Definition => (BuildingDefinition)base.Definition;
+
+        /// <summary>Where this building's produced units appear (GI-7). Defaults to the building's own position; <see cref="Barracks"/> overrides it with a dedicated spawn point. Virtual so callers (e.g. Info Panel unit production) never need to type-check for "is this a Barracks" — any building capable of producing units can be asked this generically (requirement 2's modularity mandate).</summary>
+        public virtual Vector3 SpawnPosition => transform.position;
     }
 }
