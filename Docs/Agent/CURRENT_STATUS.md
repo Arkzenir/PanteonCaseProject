@@ -7,17 +7,33 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 017 (`Gameplay scene assembly`), 2026-07-22. Compile clean,
-**127/127 EditMode tests passing** (120 prior + 7 new). Every module now lives, wired, in
-`Gameplay.unity` — this was the full integration pass, plus a requested audit that found and
-fixed real gaps (see below), not just wiring.
+**Last report:** 018 (`Draw-call/batching architecture`), 2026-07-22. Compile clean (no C# code
+touched — asset/settings only), **127/127 EditMode tests passing** (unchanged from Report 017).
 
-**The project is feature-complete and assembled, but *unverified by a human in Play Mode*.**
-The agent cannot enter Play Mode — everything below "works" per EditMode tests + reading the
-generated scene/asset files back, not per actually playing it. Report 017's audit checklist
-(in `Docs/Reports/017_gameplay-scene-assembly.md`) is the priority: a specific, ordered list of
-things to actually click through in the Editor. Until that happens, treat every requirement
-below as "implemented, not confirmed."
+**Human hand-tested Report 017 since it landed: "purely mechanically, the system works."**
+Adjustments were made directly in-Editor (not captured as a report — no code/doc changes came
+back from that pass). Visual polish is now underway in parallel (real art — the "Tiny Swords"
+pack — has replaced placeholder sprites; see ARCHITECTURE.md §4).
+
+**Report 018 scope, and why it's split:** the human asked when to do the draw-call/batching
+pass — before or after visual polish — and the agreed answer was to split it: batching
+*architecture* now (this report), numeric *verification* (actually counting draw calls against
+the &lt;20 budget) later, once visual polish is further along (decisions log #49). This report is
+architecture only:
+- Confirmed URP's SRP Batcher was already on (project-default, no action needed).
+- Confirmed every building/unit prefab's `Visuals` renderer already shares one material — the
+  other precondition for batching was already correct.
+- The real gap: no `SpriteAtlas` existed, so same-material sprites from *different* building/
+  unit types still cost separate draw calls (Unity's sprite batching needs matching texture,
+  not just material). Added `SpriteAtlas_Gameplay.spriteatlas` covering the actual art folders.
+- Enabled GPU Instancing on the project's own `M_SpriteGrayscaleGhost` material (was off) — the
+  brief names GPU Instancing as its own required pattern separate from batching.
+- No C# touched. Verified by reading the generated `.spriteatlas`/`.mat` files back.
+
+**The project is feature-complete and assembled; mechanically hand-tested once (Report 017) but
+not yet re-verified after visual polish began.** Report 017's audit checklist
+(`Docs/Reports/017_gameplay-scene-assembly.md`) is still the reference for what to click
+through if anything seems off after further polish.
 
 **What Report 017 found and fixed (read the report before assuming the obvious wiring pass is
 all this feature did):**
@@ -48,17 +64,17 @@ Combat, Buildings (`BuildingCatalog`/`BuildingCatalogEntry`/`BuildingCatalogEntr
 `ProducibleUnitIconView`, now clickable), **Gameplay** (new module, `GameplayBootstrap` — the
 scene's composition root), Events, Pooling, Pathfinding.
 
-**Not yet built:** draw-call/batching verification, Windows build export, `/final-report`. That's
-the entire remaining roadmap.
+**Not yet built:** draw-call/batching *numeric verification* (architecture is done, see above),
+Windows build export, `/final-report`. Visual polish itself is the human's own ongoing work,
+not a queued agent feature.
 
 **Recommended next-feature order:**
-1–6. ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
-   ~~Gameplay scene assembly~~ — all done (Reports 012–017).
-7. **Hand-test pass** (human, not a feature turn) — work through Report 017's audit checklist
-   in the Editor. Very likely to surface small issues (camera framing, spawn point placement,
-   scroll feel) that are cheap fixes once seen, per the report's own flagged uncertainties.
-8. **Draw-call/batching pass** — only measurable once real content exists to profile; now it
-   does.
+1–7. ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+   ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~ — all done (Reports 012–018).
+8. **Draw-call/batching verification** — once visual polish is far enough along that the numbers
+   will actually reflect final content: enter Play Mode, open the Stats window (or Frame Debugger
+   for exact SetPass call attribution), confirm &lt;20, and adjust (more atlasing, fewer unique
+   materials, etc.) if not.
 9. **Windows build + `/final-report`**.
 
 **Known environment gotchas** (full detail in `ENVIRONMENT.md`): `Awake`/`OnEnable` don't

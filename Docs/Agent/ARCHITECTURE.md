@@ -113,8 +113,18 @@ updates, publishing/subscribing via Events rather than reaching into each other 
   what the folder actually holds. `GameEntityDefs/` is reserved for `GameEntityDefinition`
   subclasses specifically — `BuildingCatalog`/event channels are config/data assets, not
   entity definitions, so they stay at the SO root alongside `GridDef_Default.asset`.
+- Third-party art: `Assets/Tiny Swords/` (a purchased/free asset pack, human-imported during
+  visual polish, not agent-authored) — building/unit sprites now come from here (`Buildings/Blue
+  Buildings/`, `Units/Blue Units/`) instead of the earlier placeholder sprites. Lives at the
+  `Assets/` root rather than under `_Project/`, which is normal/expected for an imported
+  third-party package (CONVENTIONS.md's "nothing project-authored goes outside `_Project`" rule
+  is about *project-authored* content — this is imported, unmodified third-party content, the
+  same category `Plugins/` exists for, just not literally renamed into that folder since Unity's
+  Package Manager/Asset Store import flow creates its own top-level folder).
+- New this report (018): `Assets/_Project/Art/Textures/SpriteAtlas_Gameplay.spriteatlas` — see
+  decisions log #49.
 - This section is updated feature-by-feature as prefabs/assets are actually created — treat
-  the above as current inventory as of Report 017.
+  the above as current inventory as of Report 018.
 
 ## 5. Brief-mandated requirements checklist
 Tracks BRIEF.md's "Hard requirements" 1–19 by number. No single numbered requirement is
@@ -335,6 +345,26 @@ landed that these requirements will build on.
     a human yet (the agent cannot enter Play Mode) — see the report's audit checklist for what
     to verify.
 
+- Report 018 (`Docs/Reports/018_draw-call-batching-architecture.md`): **draw-call/batching
+  architecture** — requirement 13's "achieved via batching and GPU instancing," the
+  architecture half only (the human explicitly asked to defer the *measurement* half until
+  after visual polish is further along — see decisions log #49). Audited the actual current
+  state rather than assuming: confirmed URP's SRP Batcher was already enabled
+  (`Assets/Settings/UniversalRP.asset`, default from project creation, no action needed);
+  confirmed every building/unit prefab's `Visuals` `SpriteRenderer` already shares one material
+  (URP's default sprite material) — so material-sharing, the other precondition for batching,
+  was already correct. The one real gap: no `SpriteAtlas` existed, so even same-material sprites
+  from *different* building/unit types (each its own source texture, now the human's imported
+  "Tiny Swords" art) would still cost separate draw calls — Unity's sprite batching requires
+  matching *texture*, not just material. Added `SpriteAtlas_Gameplay.spriteatlas` covering the
+  actual gameplay art folders (`Blue Buildings`/`Blue Units`), packed and verified (145 sprite
+  references in the saved atlas). Also enabled GPU Instancing on the project's own
+  `M_SpriteGrayscaleGhost` material (was off) — the brief separately names GPU Instancing as a
+  required demonstrated pattern; the default URP sprite material is package-shipped and already
+  ships instancing-capable, so this project's one custom material was the only thing to change.
+  No C# code touched — this was entirely asset/settings configuration, verified by reading the
+  generated `.spriteatlas`/`.mat` files back rather than trusting a clean exit code.
+
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
 - [ ] 3. Building placement with invalid-area feedback; name/image/dimensions
@@ -407,3 +437,5 @@ landed that these requirements will build on.
 | 46 | Found and fixed two pre-existing data bugs while auditing the definition assets this feature touches, rather than leaving them (Report 017): (1) `BuildingDef_Barracks`/`BuildingDef_PowerPlant` had an empty `entityName` (a stale `buildingName` field from before Report 010's rename was still populated instead); (2) `UnitDef_Soldier3` had `maxHealth: 1`/`attackDamage: 1` instead of the brief's explicit 10 HP / 2 damage (requirement 9) | These are unambiguous correctness bugs, not judgment calls: (1) would show a blank building name on two UI panels this very feature just wired up, and (2) directly contradicts a numbered brief requirement. Both are asset-data-only fixes (no code/logic change), low-risk and easily reversible if the human disagrees with the correction — but silently leaving a known, explicit-requirement violation in place because it predates this feature would have been the wrong call | Leaving them for the human to notice separately — the brief's own evaluation criteria explicitly call out "edge cases will be examined" and correctness against the numbered requirements; finding this during an explicitly-requested integration audit and not acting on it would defeat the purpose of doing the audit |
 | 47 | `PlacementController`/`SelectionController`'s `Update()` now both check `EventSystem.current.IsPointerOverGameObject()` and skip world-input handling when true (Report 017) | Both read `Mouse.current` directly every frame with no UI awareness — before this feature, they never coexisted with clickable UI in the same live scene, so the conflict was latent, not yet manifest. Now that the Production Menu and Info Panel are both interactive *and* live in the same scene as these controllers, clicking a UI row would otherwise also fire a world-space commit/cancel/select/deselect at whatever happened to render underneath that screen position — standard Unity idiom, applied where it was newly needed | Leaving it unguarded — would produce a real, reproducible interaction bug (clicking "produce" also deselecting/cancelling) the very first time someone actually plays the assembled scene |
 | 48 | Camera repositioned to the grid's center and resized (orthographic size 10.5) via a formula derived from `GridDef_Default.asset`'s dimensions and the Production Menu/Info Panel's known fixed UI width (360 units each, 1920 reference width), rather than left at Unity's untouched default (0,0,-10, size 5) (Report 017) | The default camera was never pointed at the grid at all (grid spans world X:[0,20] Y:[0,12]; default camera framing shows mostly empty space below-left of it) — this needed *some* fix for the scene to be usable. The formula targets fitting the grid's width inside the screen strip the two side panels don't occlude, with modest padding | Leaving the camera untouched and asking the human to fix it by hand — the math is straightforward enough to compute directly; flagged as *unverified* (agent cannot enter Play Mode) rather than silently presented as correct, so the human knows to actually look at it |
+| 49 | Split the draw-call/batching work (requirement 13) into two passes — architecture now (this report), numeric verification later, after visual polish — rather than doing both together | Human-directed, and matches how the project already treats visually-unverifiable work: batching *architecture* (shared materials, a sprite atlas, instancing flags) is cheap to set up early and expensive to retrofit once more assets exist, but the actual draw-call *count* is only meaningful measured against final content — measuring now would mean re-measuring again after every polish pass anyway | Doing a single combined pass at the very end — risks discovering a budget overrun with no time left to redesign; doing full numeric verification now — the numbers would be against placeholder-adjacent content and need re-confirming regardless |
+| 50 | `SpriteAtlas_Gameplay.spriteatlas` packs entire folders (`Blue Buildings`/`Blue Units`), not just the individual sprites the 5 shipped definitions currently reference (Report 018) | The human is still doing visual polish (this project already imported full Animator Controllers/animation clips for these unit types, suggesting animated sprites may follow) — folder-level packing auto-includes new/changed sprites the human adds later with zero further scripting, at the cost of a modestly larger atlas (unused frames from the source spritesheets also get packed) | Hand-picking only the 5 currently-referenced sprites — smaller atlas today, but would silently stop covering new art the moment visual polish adds or swaps a sprite, quietly reopening the exact gap this report closes |
