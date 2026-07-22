@@ -22,10 +22,11 @@ namespace CaseGame.UI.Info
     /// to the Production Menu's *infinite* scroll view, not this fixed-size list (see
     /// ARCHITECTURE.md decisions log).
     ///
-    /// As of Report 020, the panel also has a "Remove Building" button — human-requested, not a
-    /// brief requirement. It calls <see cref="GameEntityBase.ApplyDamage"/> for exactly the
-    /// building's own max health, reusing the existing death pipeline (pool-release,
-    /// grid-footprint release) rather than inventing a parallel removal path.
+    /// The panel also has a "Remove Building" button — human-requested, not a brief requirement.
+    /// As of the events rearchitecture, it raises <see cref="BuildingRemovalRequestedEventChannel"/>
+    /// rather than calling <see cref="GameEntityBase.ApplyDamage"/> — manual removal is a
+    /// deliberately separate trigger from combat death, not a reuse of the Health pipeline (see
+    /// ARCHITECTURE.md decisions log).
     /// </summary>
     public class InfoPanelController : MonoBehaviour
     {
@@ -36,6 +37,7 @@ namespace CaseGame.UI.Info
         [SerializeField] private ProducibleUnitIconView producibleUnitIconPrefab;
         [SerializeField] private SelectedBuildingEventChannel selectedBuildingChannel;
         [SerializeField] private Button removeBuildingButton;
+        [SerializeField] private BuildingRemovalRequestedEventChannel removalRequestedChannel;
 
         private readonly List<ProducibleUnitIconView> _producibleUnitIcons = new List<ProducibleUnitIconView>();
         private BuildingBase _currentBuilding;
@@ -92,7 +94,7 @@ namespace CaseGame.UI.Info
             }
         }
 
-        /// <summary>Destroys the currently-displayed building (lethal self-damage — reuses the existing death pipeline, see class doc) and immediately hides the panel rather than waiting for a round trip through Selection.</summary>
+        /// <summary>Raises a removal request for the currently-displayed building (see class doc — a separate trigger from Health) and immediately hides the panel rather than waiting for a round trip through Selection.</summary>
         public void RequestRemoveBuilding()
         {
             if (_currentBuilding == null)
@@ -100,7 +102,11 @@ namespace CaseGame.UI.Info
                 return;
             }
 
-            _currentBuilding.ApplyDamage(_currentBuilding.MaxHealth);
+            if (removalRequestedChannel != null)
+            {
+                removalRequestedChannel.Raise(_currentBuilding);
+            }
+
             SetSelectedBuilding(null);
         }
 

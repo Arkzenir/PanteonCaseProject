@@ -59,6 +59,25 @@ namespace CaseGame.Tests.EditMode.Buildings
         }
 
         [Test]
+        public void Release_CalledDirectly_ReturnsInstanceToPoolWithoutKillingIt()
+        {
+            var prefab = new GameObject("Prefab").AddComponent<TestBuilding>();
+            var definition = CreateDefinition(10);
+            var factory = new BuildingFactory();
+
+            var first = factory.Create(definition, prefab);
+            factory.Release(first); // manual removal-style release, not ApplyDamage
+            var second = factory.Create(definition, prefab);
+
+            Assert.AreSame(first, second);
+            Assert.IsFalse(second.IsDead);
+
+            Object.DestroyImmediate(prefab.gameObject);
+            Object.DestroyImmediate(second.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
         public void Create_DifferentPrefabs_ReturnInstancesOfEachDistinctPrefab()
         {
             var prefabA = new GameObject("PrefabA").AddComponent<TestBuilding>();

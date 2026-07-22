@@ -476,6 +476,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameCamera: {fileID: 519420031}
   produceRequestedChannel: {fileID: 11400000, guid: 07b3fd5abff55a04ebf19581b107eb2d, type: 2}
+  removalRequestedChannel: {fileID: 11400000, guid: df95d91e968d4134795c0a060106e12e, type: 2}
 --- !u!4 &433717986
 Transform:
   m_ObjectHideFlags: 0
@@ -719,6 +720,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gameCamera: {fileID: 519420031}
   selectedBuildingChannel: {fileID: 11400000, guid: 602ecbac44fccb74bb93198cf8cae2bd, type: 2}
+  removalRequestedChannel: {fileID: 11400000, guid: df95d91e968d4134795c0a060106e12e, type: 2}
 --- !u!4 &1007385006
 Transform:
   m_ObjectHideFlags: 0
@@ -920,6 +922,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 262034756}
     m_Modifications:
+    - target: {fileID: 3970444431102925785, guid: 2a20e960adac7d34599aa008e8b529bc, type: 3}
+      propertyPath: removalRequestedChannel
+      value: 
+      objectReference: {fileID: 11400000, guid: df95d91e968d4134795c0a060106e12e, type: 2}
     - target: {fileID: 3970444431102925786, guid: 2a20e960adac7d34599aa008e8b529bc, type: 3}
       propertyPath: m_Pivot.x
       value: 1

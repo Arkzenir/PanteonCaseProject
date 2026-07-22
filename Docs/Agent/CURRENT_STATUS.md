@@ -7,8 +7,8 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 020 (`Placement/Grid architecture fixes`), 2026-07-22. Compile clean,
-**153/153 EditMode tests passing** (134 prior + 19 new).
+**Last report:** 021 (`Building events rearchitecture`), 2026-07-22. Compile clean,
+**160/160 EditMode tests passing** (153 prior + 7 new).
 
 **Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
 Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
@@ -18,19 +18,28 @@ Instancing on the project's own material) — numeric verification is deliberate
 polish is further along (decisions log #49). Report 019 added `CameraControl` (pan/zoom).
 None of 018–020 have been hand-tested in Play Mode yet.
 
-**Report 020 (this one) — first item off the post-hand-test backlog, "Placement/Grid
-architecture fixes."** Three related fixes:
+**Report 020 — first item off the post-hand-test backlog, "Placement/Grid architecture
+fixes."** Three related fixes:
 - **Center-anchored footprint placement** — the hovered cell is now the footprint's center, not
   its bottom-left corner (was visibly misaligning centered building art from its footprint).
-- **"Remove Building"** on the Info Panel — implemented as `ApplyDamage(MaxHealth)`, reusing the
-  existing death pipeline. This surfaced and fixed a real pre-existing bug: combat-destroyed
-  buildings never released their grid cells either (nothing connected "died" to "unoccupy") —
-  fixed once, for both paths, via a new `GameEntityBase.OnEntityDied()` hook.
+- **"Remove Building"** on the Info Panel — originally implemented as `ApplyDamage(MaxHealth)`,
+  reusing the death pipeline; **corrected by Report 021, see below.** Surfaced and fixed a real
+  pre-existing bug along the way: combat-destroyed buildings never released their grid cells
+  either (nothing connected "died" to "unoccupy") — fixed via a new
+  `GameEntityBase.OnEntityDied()` hook, which still stands.
 - **Unit spawn-cell occupancy** — units spawn snapped to the nearest cell to their Barracks'
   spawn point, blocked if that cell has a building or another unit on it (a live `UnitFactory`
   scan, not a persisted occupancy grid — scoped to spawn-time only, not unit pathfinding).
 
-See ARCHITECTURE.md decisions log #52–54 for the full reasoning on each.
+**Report 021 (this one) — human-directed correction to Report 020's "Remove Building" design.**
+The required event shape: Buildings — Creation → Event, Removal → Event, Death → Handled by
+health; Units — Creation → Event, Death → Handled by health. Removal was wrong (folded into
+Death); fixed with a new `BuildingRemovalRequestedEventChannel` — `InfoPanelController` raises
+it, `PlacementController` subscribes and does the actual removal (`ReleaseFootprint` +
+`BuildingFactory.Release`, zero Health involvement), `SelectionController` subscribes to clear a
+stale selection reactively (removal no longer sets `IsDead` for the old lazy check to catch).
+
+See ARCHITECTURE.md decisions log #52–55 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -51,9 +60,9 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–020):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–021):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
-~~Placement/Grid architecture fixes~~.
+~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
@@ -64,11 +73,6 @@ order below is dependency-aware, not a hard requirement — pick freely.
     - Selection outline visual for units — a real outline (shader/sprite-mask/child renderer),
       likely alongside or replacing `GameEntityBase.SetSelected`'s current color-tint approach
       (decision #38's fix would still apply — reset on `Initialize` for pooled reuse).
-    - Re-verify "left-click empty ground clears selection" — this should already work
-      (`SelectionController.HandleLeftClick`'s non-additive/null-hit branch, Report 015); the
-      human listed it as needed, so either it regressed, there's an edge case (e.g. clicking
-      terrain once tilemap exists) it doesn't cover, or it just needs re-confirming now that the
-      full scene is wired. Check before assuming it needs new code.
 11. **Movement timing fix** — `SoldierBase.MoveSpeed` should mean "N grid cells per second,"
     with a **diagonal step counting as 1 cell**, not √2 world-distance units (today
     `FollowPath`'s `Vector3.MoveTowards(..., MoveSpeed * Time.deltaTime)` moves at a constant

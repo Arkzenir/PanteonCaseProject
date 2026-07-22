@@ -21,6 +21,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
         private TextMeshProUGUI _buildingNameText;
         private RectTransform _producibleUnitsContainer;
         private Button _removeBuildingButton;
+        private BuildingRemovalRequestedEventChannel _removalChannel;
         private ProducibleUnitIconView _iconPrefab;
         private Soldier _soldierPrefab;
         private InfoPanelController _controller;
@@ -38,6 +39,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
             _producibleUnitsContainer.SetParent(_panelRoot.transform);
             _removeBuildingButton = new GameObject("RemoveBuildingButton", typeof(RectTransform)).AddComponent<Button>();
             _removeBuildingButton.transform.SetParent(_panelRoot.transform);
+            _removalChannel = ScriptableObject.CreateInstance<BuildingRemovalRequestedEventChannel>();
 
             _soldierPrefab = new GameObject("SoldierPrefab").AddComponent<Soldier>();
             _iconPrefab = CreateIconPrefab();
@@ -50,6 +52,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
             so.FindProperty("producibleUnitsContainer").objectReferenceValue = _producibleUnitsContainer;
             so.FindProperty("producibleUnitIconPrefab").objectReferenceValue = _iconPrefab;
             so.FindProperty("removeBuildingButton").objectReferenceValue = _removeBuildingButton;
+            so.FindProperty("removalRequestedChannel").objectReferenceValue = _removalChannel;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -66,6 +69,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
 
             Object.DestroyImmediate(_controller.gameObject);
             Object.DestroyImmediate(_panelRoot);
+            Object.DestroyImmediate(_removalChannel);
             Object.DestroyImmediate(_iconPrefab.gameObject);
             Object.DestroyImmediate(_soldierPrefab.gameObject);
 
@@ -146,14 +150,17 @@ namespace CaseGame.Tests.EditMode.UI.Info
         }
 
         [Test]
-        public void RequestRemoveBuilding_KillsTheSelectedBuilding()
+        public void RequestRemoveBuilding_RaisesRemovalChannelWithTheSelectedBuildingWithoutKillingIt()
         {
             var building = CreateBuilding("Barracks");
             _controller.SetSelectedBuilding(building);
+            BuildingBase received = null;
+            _removalChannel.Subscribe(b => received = b);
 
             _controller.RequestRemoveBuilding();
 
-            Assert.IsTrue(building.IsDead);
+            Assert.AreSame(building, received);
+            Assert.IsFalse(building.IsDead);
         }
 
         [Test]

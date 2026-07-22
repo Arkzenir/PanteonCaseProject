@@ -35,6 +35,7 @@ namespace CaseGame.Selection
     {
         [SerializeField] private Camera gameCamera;
         [SerializeField] private SelectedBuildingEventChannel selectedBuildingChannel;
+        [SerializeField] private BuildingRemovalRequestedEventChannel removalRequestedChannel;
 
         private GridModel _grid;
         private BuildingBase _selectedBuilding;
@@ -47,6 +48,31 @@ namespace CaseGame.Selection
         public void Initialize(GridModel grid)
         {
             _grid = grid;
+        }
+
+        private void OnEnable()
+        {
+            if (removalRequestedChannel != null)
+            {
+                removalRequestedChannel.Subscribe(HandleBuildingRemoved);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (removalRequestedChannel != null)
+            {
+                removalRequestedChannel.Unsubscribe(HandleBuildingRemoved);
+            }
+        }
+
+        /// <summary>Reacts to a building being removed elsewhere (<see cref="BuildingRemovalRequestedEventChannel"/>) by clearing the selection if it was the one selected. Removal doesn't touch Health/<c>IsDead</c> the way combat death does, so this proactive subscription is what keeps a removed building from lingering as "selected" — mirrors <see cref="SetSelectedBuilding"/>'s existing <c>IsDead</c> guard, which still covers the combat-death case.</summary>
+        public void HandleBuildingRemoved(BuildingBase building)
+        {
+            if (_selectedBuilding == building)
+            {
+                SetSelectedBuilding(null);
+            }
         }
 
         /// <param name="hitEntity">Whatever was under the cursor, or null for empty ground.</param>
@@ -160,11 +186,12 @@ namespace CaseGame.Selection
         {
             if (_selectedBuilding != null && _selectedBuilding.IsDead)
             {
-                // The previously-selected building died or was removed elsewhere (combat, or the
-                // Info Panel's Remove button) without going through this controller — don't let a
-                // stale reference (possibly since reused by pooling for an unrelated building)
-                // short-circuit the equality check below. Mirrors the soldier-pruning pattern in
-                // HandleRightClick (decisions log #39).
+                // The previously-selected building died in combat elsewhere, without going
+                // through this controller — don't let a stale reference (possibly since reused
+                // by pooling for an unrelated building) short-circuit the equality check below.
+                // Mirrors the soldier-pruning pattern in HandleRightClick (decisions log #39).
+                // Manual removal is a separate, non-Health trigger — handled proactively by
+                // HandleBuildingRemoved instead, since removal never sets IsDead.
                 _selectedBuilding = null;
             }
 

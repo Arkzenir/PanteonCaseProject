@@ -122,5 +122,47 @@ namespace CaseGame.Tests.EditMode.Buildings
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
         }
+
+        [Test]
+        public void ReleaseFootprint_CalledDirectly_FreesGridWithoutAffectingHealth()
+        {
+            var go = new GameObject("Building");
+            var building = go.AddComponent<TestBuilding>();
+            var definition = ScriptableObject.CreateInstance<BuildingDefinition>();
+            var defSo = new SerializedObject(definition);
+            defSo.FindProperty("maxHealth").intValue = 10;
+            defSo.FindProperty("footprint").vector2IntValue = new Vector2Int(2, 2);
+            defSo.ApplyModifiedPropertiesWithoutUndo();
+            building.Initialize(definition);
+            var grid = CreateGrid(10, 10);
+            grid.SetAreaOccupied(new Vector2Int(3, 3), new Vector2Int(2, 2), true);
+            building.SetPlacement(grid, new Vector2Int(3, 3));
+
+            building.ReleaseFootprint();
+
+            Assert.IsTrue(grid.IsAreaFree(new Vector2Int(3, 3), new Vector2Int(2, 2)));
+            Assert.IsNull(building.FootprintOrigin);
+            Assert.IsFalse(building.IsDead);
+
+            Object.DestroyImmediate(go);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void ReleaseFootprint_NeverPlaced_DoesNotThrow()
+        {
+            var go = new GameObject("Building");
+            var building = go.AddComponent<TestBuilding>();
+            var definition = ScriptableObject.CreateInstance<BuildingDefinition>();
+            var defSo = new SerializedObject(definition);
+            defSo.FindProperty("maxHealth").intValue = 10;
+            defSo.ApplyModifiedPropertiesWithoutUndo();
+            building.Initialize(definition);
+
+            Assert.DoesNotThrow(() => building.ReleaseFootprint());
+
+            Object.DestroyImmediate(go);
+            Object.DestroyImmediate(definition);
+        }
     }
 }

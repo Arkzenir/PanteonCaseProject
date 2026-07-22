@@ -15,6 +15,9 @@ namespace CaseGame.Buildings
         private readonly Dictionary<BuildingBase, PrefabPool<BuildingBase>> _pools =
             new Dictionary<BuildingBase, PrefabPool<BuildingBase>>();
 
+        private readonly Dictionary<BuildingBase, PrefabPool<BuildingBase>> _instancePools =
+            new Dictionary<BuildingBase, PrefabPool<BuildingBase>>();
+
         private readonly Transform _parent;
 
         public BuildingFactory(Transform parent = null)
@@ -26,14 +29,19 @@ namespace CaseGame.Buildings
         {
             var pool = GetOrCreatePool(prefab);
             var instance = pool.Get();
-            instance.Initialize(definition, () => pool.Release(instance));
+            instance.Initialize(definition, () => Release(instance));
+            _instancePools[instance] = pool;
             return instance;
         }
 
-        /// <summary>Manually returns an instance to its pool without it having "died" — e.g. Placement cancelling a ghost that was never committed.</summary>
-        public void Release(BuildingBase prefab, BuildingBase instance)
+        /// <summary>Returns an instance to whichever pool it came from — used by the death pipeline's pooling callback (combat) and directly by manual removal (Placement cancelling a ghost, or removing an already-placed building) alike. Neither caller needs to know or pass back the originating prefab.</summary>
+        public void Release(BuildingBase instance)
         {
-            GetOrCreatePool(prefab).Release(instance);
+            if (_instancePools.TryGetValue(instance, out var pool))
+            {
+                pool.Release(instance);
+                _instancePools.Remove(instance);
+            }
         }
 
         private PrefabPool<BuildingBase> GetOrCreatePool(BuildingBase prefab)

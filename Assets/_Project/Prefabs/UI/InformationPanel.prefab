@@ -411,6 +411,7 @@ MonoBehaviour:
   producibleUnitIconPrefab: {fileID: 4935114907378570364, guid: 13aed9b01b0cb78468b72896e88bc2ac, type: 3}
   selectedBuildingChannel: {fileID: 11400000, guid: 602ecbac44fccb74bb93198cf8cae2bd, type: 2}
   removeBuildingButton: {fileID: 3652259526432035986}
+  removalRequestedChannel: {fileID: 11400000, guid: df95d91e968d4134795c0a060106e12e, type: 2}
 --- !u!1 &7172703223863521058
 GameObject:
   m_ObjectHideFlags: 0

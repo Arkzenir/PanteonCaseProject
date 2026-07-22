@@ -28,11 +28,11 @@ namespace CaseGame.Placement
     {
         [SerializeField] private Camera gameCamera;
         [SerializeField] private BuildingCatalogEntryEventChannel produceRequestedChannel;
+        [SerializeField] private BuildingRemovalRequestedEventChannel removalRequestedChannel;
 
         private GridModel _grid;
         private BuildingFactory _factory;
         private BuildingDefinition _currentDefinition;
-        private BuildingBase _currentPrefab;
         private BuildingBase _ghostInstance;
         private BuildingGhostView _ghostView;
 
@@ -54,6 +54,11 @@ namespace CaseGame.Placement
             {
                 produceRequestedChannel.Subscribe(HandleProduceRequested);
             }
+
+            if (removalRequestedChannel != null)
+            {
+                removalRequestedChannel.Subscribe(HandleRemovalRequested);
+            }
         }
 
         private void OnDisable()
@@ -61,6 +66,11 @@ namespace CaseGame.Placement
             if (produceRequestedChannel != null)
             {
                 produceRequestedChannel.Unsubscribe(HandleProduceRequested);
+            }
+
+            if (removalRequestedChannel != null)
+            {
+                removalRequestedChannel.Unsubscribe(HandleRemovalRequested);
             }
         }
 
@@ -70,12 +80,17 @@ namespace CaseGame.Placement
             BeginPlacement(entry.Definition, entry.Prefab);
         }
 
+        /// <summary>Responds to the Information Panel's "remove" click (<see cref="BuildingRemovalRequestedEventChannel"/>) — Placement owns "commit to grid," so it also owns "uncommit from grid," symmetric with <see cref="HandleProduceRequested"/>.</summary>
+        private void HandleRemovalRequested(BuildingBase building)
+        {
+            RemoveBuilding(building);
+        }
+
         public void BeginPlacement(BuildingDefinition definition, BuildingBase prefab)
         {
             CancelPlacement();
 
             _currentDefinition = definition;
-            _currentPrefab = prefab;
             _ghostInstance = _factory.Create(definition, prefab);
             _ghostView = _ghostInstance.GetComponent<BuildingGhostView>();
             _ghostView.ShowGhost();
@@ -88,9 +103,21 @@ namespace CaseGame.Placement
                 return;
             }
 
-            _factory.Release(_currentPrefab, _ghostInstance);
+            _factory.Release(_ghostInstance);
             _ghostInstance = null;
             _ghostView = null;
+        }
+
+        /// <summary>Frees the building's grid footprint and returns its instance to the pool — entirely independent of Health/<c>ApplyDamage</c>, unlike combat destruction (see ARCHITECTURE.md decisions log).</summary>
+        public void RemoveBuilding(BuildingBase building)
+        {
+            if (building == null)
+            {
+                return;
+            }
+
+            building.ReleaseFootprint();
+            _factory.Release(building);
         }
 
         /// <summary>Moves the ghost to the given cell and updates its valid/invalid tint. No-op if not currently placing.</summary>

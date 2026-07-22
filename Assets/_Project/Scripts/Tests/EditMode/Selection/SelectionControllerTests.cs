@@ -261,6 +261,37 @@ namespace CaseGame.Tests.EditMode.Selection
         }
 
         [Test]
+        public void HandleBuildingRemoved_WasSelected_ClearsSelectionAndRaisesNull()
+        {
+            var building = CreateBuilding();
+            _controller.HandleLeftClick(building, additive: false);
+            BuildingBase received = building;
+            _channel.Subscribe(b => received = b);
+
+            _controller.HandleBuildingRemoved(building);
+
+            Assert.IsNull(_controller.SelectedBuilding);
+            Assert.IsNull(received);
+
+            DestroyBuilding(building);
+        }
+
+        [Test]
+        public void HandleBuildingRemoved_WasNotSelected_LeavesSelectionUnchanged()
+        {
+            var selected = CreateBuilding();
+            var removed = CreateBuilding();
+            _controller.HandleLeftClick(selected, additive: false);
+
+            _controller.HandleBuildingRemoved(removed);
+
+            Assert.AreSame(selected, _controller.SelectedBuilding);
+
+            DestroyBuilding(selected);
+            DestroyBuilding(removed);
+        }
+
+        [Test]
         public void ClearSelection_DeselectsSoldiersAndBuildingAndRaisesNull()
         {
             var building = CreateBuilding();

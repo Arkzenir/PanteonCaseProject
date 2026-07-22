@@ -167,6 +167,25 @@ namespace CaseGame.Tests.EditMode.Placement
         }
 
         [Test]
+        public void RemoveBuilding_PlacedBuilding_FreesTheGridWithoutKillingTheInstance()
+        {
+            _controller.BeginPlacement(_definition, _prefab);
+            var committedInstance = _controller.CurrentGhost;
+            _controller.TryCommitAt(new Vector2Int(2, 2));
+
+            _controller.RemoveBuilding(committedInstance);
+
+            Assert.IsTrue(_grid.IsAreaFree(new Vector2Int(1, 1), new Vector2Int(2, 2)));
+            Assert.IsFalse(committedInstance.IsDead);
+        }
+
+        [Test]
+        public void RemoveBuilding_Null_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _controller.RemoveBuilding(null));
+        }
+
+        [Test]
         public void TryCommitAt_OccupiedCell_ReturnsFalseAndKeepsPlacing()
         {
             _grid.SetAreaOccupied(new Vector2Int(2, 2), Vector2Int.one, true);
