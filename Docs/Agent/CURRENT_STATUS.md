@@ -7,7 +7,18 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 031 (`Camera bounds + terrain follow-up`), 2026-07-22 — human follow-up to Report
+**Last report:** 032 (`Procedural island tilemap generation`), 2026-07-22 — human follow-up to
+Report 031: the human hand-painted the grass/cliff island (leaving out Water Foam) using the Tile
+Palette walkthrough from Report 031, then asked for that exact result to regenerate procedurally
+for any grid size. New `IslandTileSet` SO (12 named tile references: 9 for the grass 9-slice, 3
+for the cliff row) + pure `IslandTilemapLayout` (computes grass/cliff placements for any
+columns/rows) + `IslandTerrainView` (`[ExecuteAlways]`, mirrors `GridView`'s live-preview pattern
+exactly). The 12 tile references were extracted automatically from the human's own hand-painted
+Tilemaps via a throwaway script that verified the extraction reproduced every originally-painted
+cell exactly *before* touching anything live — confirmed clean, zero mismatches. 218/218 EditMode
+tests passing.
+
+**Report 031 (`Camera bounds + terrain follow-up`), 2026-07-22** — human follow-up to Report
 030. (1) `GridDefinition` gained `TerrainMargin` (30 world units, up from Report 030's hardcoded
 20) as the single source of truth for how far the water backdrop extends — both the baked
 `Terrain/Water` Tilemap and `CameraController`'s new bounds read it, so they can't drift apart.
@@ -206,12 +217,13 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–031):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–032):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
 ~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
-~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~.
+~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~,
+~~Procedural island tilemap generation~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
