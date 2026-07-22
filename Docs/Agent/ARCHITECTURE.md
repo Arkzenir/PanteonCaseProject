@@ -32,7 +32,7 @@ other.
 | Pooling | `CaseGame.Pooling` | Generic `ObjectPool<T>` used by the scroll view and by frequently spawned/destroyed units/buildings | — |
 | Events | `CaseGame.Events` | Lightweight C# event channels (plain events and/or SO event channels) connecting the above without direct references | — |
 | UI.Production | `CaseGame.UI.Production` | `ScrollRecycler` (plain C#: given item count/pool size/scroll offset, decides which data index each pooled slot shows and where — the actual "infinite, object-pooled scroll" math, tested independent of Unity UI), `ProductionMenuItemView` (View: one pooled, rebindable row), `ProductionMenuController` (Controller: owns the `PrefabPool<ProductionMenuItemView>`, applies `ScrollRecycler`'s decisions to `ScrollRect`). Iterates `BuildingCatalog` **generically** (no per-type UI branches); a row's "produce" click raises `BuildingCatalogEntryEventChannel` — Placement listens, so neither module references the other | Pooling, Buildings, Events |
-| UI.Info | `CaseGame.UI.Info` | Information Panel: shows selected building/unit image + producible-unit images, driven by each `BuildingDefinition`'s own `UnitDefinition` list | Events, Buildings, Units |
+| UI.Info | `CaseGame.UI.Info` | `InfoPanelController` (subscribes to `SelectedBuildingEventChannel`; shows the selected building's image/name, hides entirely for null/soldier selection) and `ProducibleUnitIconView` (small non-interactive icon per producible unit, spawned generically off `BuildingDefinition.ProducibleUnits` — requirement 6's "Power Plant needs no production sub-menu" falls out for free as an empty list, no per-type branch) | Events, Buildings, Units |
 | UI.MainMenu | `CaseGame.UI.MainMenu` | Main Menu screen: Play button → loads `Gameplay.unity` | Core |
 | UI.Settings | `CaseGame.UI.Settings` | Settings screen: resolution / display-mode selection, applied via `Screen.SetResolution` | Core |
 
@@ -70,11 +70,13 @@ updates, publishing/subscribing via Events rather than reaching into each other 
 - `Gameplay.unity` — the actual demo: Game Board (grid), Production Menu (UI), Information
   Panel (UI). Hierarchy uses top-level organizers per CONVENTIONS.md: `--- SYSTEMS ---`,
   `--- ENVIRONMENT ---` (grid/board), `--- GAMEPLAY ---` (spawned buildings/units container),
-  `--- UI ---` (Production Menu, Information Panel, Canvas). As of Report 014, `--- UI ---`
+  `--- UI ---` (Production Menu, Information Panel, Canvas). As of Report 016, `--- UI ---`
   exists with a `Canvas` (`ScaleWithScreenSize`, 1920×1080 reference), an `EventSystem`
-  (`InputSystemUIInputModule`), and the `ProductionMenu` scroll view
-  (`ProductionMenuController`, wired to `BuildingCatalog_Default.asset`); `--- SYSTEMS ---`
-  and `--- GAMEPLAY ---` don't exist yet — still Gameplay scene assembly's job.
+  (`InputSystemUIInputModule`), the `ProductionMenu` scroll view (`ProductionMenuController`,
+  wired to `BuildingCatalog_Default.asset`, left-anchored), and `InformationPanel`
+  (`InfoPanelController`, wired to `SelectedBuildingEvent_Default.asset`, right-anchored,
+  starts inactive); `--- SYSTEMS ---` and `--- GAMEPLAY ---` don't exist yet — still Gameplay
+  scene assembly's job.
 - Key prefabs (added as each feature lands), all under `Assets/_Project/Prefabs/`:
   `Buildings/Building_Barracks.prefab` + `Building_PowerPlant.prefab` (human-created after
   Report 009) — each a parent GameObject with `Visuals` (SpriteRenderer), `Hitbox` (collider,
@@ -84,12 +86,14 @@ updates, publishing/subscribing via Events rather than reaching into each other 
   the root. `UI/ProductionMenuItem.prefab` (Report 014, agent-created via throwaway script) —
   `Icon` (Image) + `Name` (TMP text) children, `Button` + `ProductionMenuItemView` on the root;
   no `<Category>_` prefix since there's no family of named variants to disambiguate, unlike the
-  building/unit prefabs. All per CONVENTIONS.md's per-prefab grouping convention. Still to
-  come: ghost/preview prefab for placement (reuses the building prefabs themselves, see
-  decisions log #29 — nothing separate needed).
+  building/unit prefabs. `UI/ProducibleUnitIcon.prefab` (Report 016, same agent-created pattern)
+  — same `Image`/`Name` shape, no `Button` (purely informational, see decisions log #40). All
+  per CONVENTIONS.md's per-prefab grouping convention. Still to come: ghost/preview prefab for
+  placement (reuses the building prefabs themselves, see decisions log #29 — nothing separate
+  needed).
 - SO definition/config assets live under `Assets/_Project/ScriptableObjects/`: `GridDef_Default.asset`,
-  `BuildingCatalog_Default.asset`, and `BuildingCatalogEntryEvent_Default.asset` (both added
-  Report 014) at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` +
+  `BuildingCatalog_Default.asset`, `BuildingCatalogEntryEvent_Default.asset` (Report 014), and
+  `SelectedBuildingEvent_Default.asset` (Report 016) at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` +
   `BuildingDef_PowerPlant.asset`, and `GameEntityDefs/Units/UnitDef_Soldier1.asset` +
   `UnitDef_Soldier2.asset` + `UnitDef_Soldier3.asset` — human's own organization, renamed from
   an earlier `ScriptableObjects/Units/{Buildings,Troops}/` pass to `GameEntityDefs/` once the
@@ -255,6 +259,24 @@ landed that these requirements will build on.
   `GridModel`. Editor hookup: the 5 existing building/soldier prefabs need a `BoxCollider2D`
   (trigger) added to their `Hitbox` child — full checklist in the report.
 
+- Report 016 (`Docs/Reports/016_ui-info.md`): landed the `UI.Info` module — the Information
+  Panel (requirement 5). `InfoPanelController` subscribes to `SelectedBuildingEventChannel`
+  (raised by `SelectionController`, Report 015 — first real consumer) and shows the selected
+  building's image/name, hiding entirely when nothing (or a soldier) is selected.
+  `ProducibleUnitIconView` is a small, non-interactive, ungrouped icon (unlike
+  `ProductionMenuItemView` — producing still only happens via the Production Menu) spawned
+  generically off `BuildingDefinition.ProducibleUnits`; Power Plant's empty list means its row
+  is simply empty — no per-building-type branch anywhere (requirement 6). Deliberately *not*
+  pooled (decisions log #40) — the list is always small and only rebuilds on the rare
+  "selection changed" event, unlike the Production Menu's actually-infinite list. A throwaway
+  editor script (deleted same turn) built `Gameplay.unity`'s Information Panel — a right-anchored
+  panel under the existing `--- UI ---` Canvas, mirroring the Production Menu's left-anchored
+  strip — the `ProducibleUnitIcon` prefab, and populated `SelectedBuildingEvent_Default.asset`.
+  Scope boundary, same as Reports 014/015: `SelectionController` still isn't in the scene, so
+  the panel can't be hand-tested end-to-end yet — it only shows/hides correctly today because
+  its own `SetSelectedBuilding` was called directly by tests, not because anything in the scene
+  is driving it.
+
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
 - [ ] 3. Building placement with invalid-area feedback; name/image/dimensions
@@ -318,3 +340,4 @@ landed that these requirements will build on.
 | 37 | Right-click attack (`SoldierBase.TryAttack`) is instant and range-less — no check that the target is within any distance of the attacking soldier, no "walk into range first" (Report 015) | `TryAttack`'s existing signature (Report 012) already only takes an `IDamageable`, no position/range info, and its doc comment explicitly anticipated Selection wiring it up exactly this way. The brief's requirement 11 says only "attack via right-click on a target," with no range/approach language, unlike requirement 8's explicit "shortest path" for movement — so range enforcement would be adding a mechanic the brief never asked for | Requiring the soldier to `MoveTo` attack range before applying damage — a materially bigger feature (attack-range data, movement-then-attack sequencing) with no textual basis in the brief |
 | 38 | `GameEntityBase.Initialize` now resets `spriteRenderer.color` to white every call (Report 015) | Necessary correctness fix, not a stylistic addition: `SetSelected` (this report) makes sprite color stateful, and instances are pooled/reused (`BuildingFactory`/`UnitFactory`) — without the reset, an instance released while selected would start its *next* life pre-tinted yellow, a real bug the moment Selection exists, not a hypothetical one | Leaving color-reset to whoever adds selection visuals to a *specific* type later — would silently reintroduce the bug for every pooled type, since the root cause (pooling + stateful color) lives in the shared base |
 | 39 | `SelectionController.HandleRightClick` prunes dead/null soldiers from the selection (`_selectedSoldiers.RemoveAll(s => s == null \|\| s.IsDead)`) at the point of use, rather than proactively unsubscribing from a death event as soon as a soldier is deselected-by-dying (Report 015) | Handles the realistic case (a selected soldier dies, sits inactive in its pool, hasn't been reused yet) with one line and no event-subscription bookkeeping. The narrower race — a dead selected soldier's pooled instance gets reused as a *different* soldier before the player's next right-click — is a known, accepted, documented limitation, not silently ignored: pruning by `IsDead` can't catch a reused instance still passing sanity as "not dead" | Subscribing to each selected soldier's death individually (would need a per-instance-death event GameEntityBase doesn't currently expose, plus careful subscribe/unsubscribe pairing on every selection change) to close a race that's unlikely to matter for a demo project of this scope |
+| 40 | `InfoPanelController`'s producible-unit icons are plain `Instantiate`/`Destroy` per selection change, not pooled via `PrefabPool<T>` (Report 016) | The brief ties Object Pooling specifically to the Production Menu's *infinite* scroll view (UX section) and to frequently spawned/destroyed units/buildings (decision #4) — this list is always small (≤3 today, bounded by however many `UnitDefinition`s a `BuildingDefinition` lists) and only rebuilds on the rare "selection changed" event, not every frame or even every second. Pooling it would need an arbitrary pool-size guess with no data-driven contract behind it, for a churn rate pooling doesn't meaningfully help | Reusing `PrefabPool<ProducibleUnitIconView>` for consistency with `ProductionMenuController` — would apply the same tool to a problem it doesn't have (over-engineering, golden rule 2) |
