@@ -93,61 +93,80 @@ namespace CaseGame.Tests.EditMode.Entities
         }
 
         [Test]
-        public void SetSelected_True_TintsSpriteRenderer()
+        public void SetSelected_True_EnablesOutlineRenderer()
         {
-            var (entity, spriteRenderer) = CreateEntityWithSpriteRenderer();
+            var (entity, outlineRenderer) = CreateEntityWithOutlineRenderer();
             var definition = CreateDefinition(10);
             entity.Initialize(definition);
 
             entity.SetSelected(true);
 
-            Assert.AreNotEqual(Color.white, spriteRenderer.color);
+            Assert.IsTrue(outlineRenderer.enabled);
 
             Object.DestroyImmediate(entity.gameObject);
             Object.DestroyImmediate(definition);
         }
 
         [Test]
-        public void SetSelected_FalseAfterTrue_RestoresWhite()
+        public void SetSelected_FalseAfterTrue_DisablesOutlineRenderer()
         {
-            var (entity, spriteRenderer) = CreateEntityWithSpriteRenderer();
+            var (entity, outlineRenderer) = CreateEntityWithOutlineRenderer();
             var definition = CreateDefinition(10);
             entity.Initialize(definition);
 
             entity.SetSelected(true);
             entity.SetSelected(false);
 
-            Assert.AreEqual(Color.white, spriteRenderer.color);
+            Assert.IsFalse(outlineRenderer.enabled);
 
             Object.DestroyImmediate(entity.gameObject);
             Object.DestroyImmediate(definition);
         }
 
         [Test]
-        public void Initialize_ResetsLeftoverSelectionTintFromPreviousUse()
+        public void Initialize_ResetsLeftoverSelectionOutlineFromPreviousUse()
         {
-            var (entity, spriteRenderer) = CreateEntityWithSpriteRenderer();
+            var (entity, outlineRenderer) = CreateEntityWithOutlineRenderer();
             var definition = CreateDefinition(10);
             entity.Initialize(definition);
             entity.SetSelected(true); // simulates a pooled instance released while still selected
 
             entity.Initialize(definition); // simulates the factory reusing it for a new instance
 
-            Assert.AreEqual(Color.white, spriteRenderer.color);
+            Assert.IsFalse(outlineRenderer.enabled);
 
             Object.DestroyImmediate(entity.gameObject);
             Object.DestroyImmediate(definition);
         }
 
-        private static (TestEntity entity, SpriteRenderer spriteRenderer) CreateEntityWithSpriteRenderer()
+        [Test]
+        public void Initialize_SetsOutlineRendererSpriteToMatchDefinition()
+        {
+            var (entity, outlineRenderer) = CreateEntityWithOutlineRenderer();
+            var definition = CreateDefinition(10);
+            var sprite = Sprite.Create(new Texture2D(1, 1), new Rect(0, 0, 1, 1), Vector2.zero);
+            var so = new SerializedObject(definition);
+            so.FindProperty("sprite").objectReferenceValue = sprite;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            entity.Initialize(definition);
+
+            Assert.AreSame(sprite, outlineRenderer.sprite);
+
+            Object.DestroyImmediate(entity.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        private static (TestEntity entity, SpriteRenderer outlineRenderer) CreateEntityWithOutlineRenderer()
         {
             var go = new GameObject("Entity");
-            var spriteRenderer = go.AddComponent<SpriteRenderer>();
+            var outlineRenderer = new GameObject("Outline").AddComponent<SpriteRenderer>();
+            outlineRenderer.transform.SetParent(go.transform);
             var entity = go.AddComponent<TestEntity>();
             var so = new SerializedObject(entity);
-            so.FindProperty("spriteRenderer").objectReferenceValue = spriteRenderer;
+            so.FindProperty("outlineRenderer").objectReferenceValue = outlineRenderer;
             so.ApplyModifiedPropertiesWithoutUndo();
-            return (entity, spriteRenderer);
+            return (entity, outlineRenderer);
         }
     }
 }

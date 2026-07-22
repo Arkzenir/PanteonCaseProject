@@ -14,9 +14,8 @@ namespace CaseGame.Entities
     /// </summary>
     public abstract class GameEntityBase : MonoBehaviour, IDamageable
     {
-        private static readonly Color SelectedTint = new Color(1f, 1f, 0.5f);
-
         [SerializeField] private SpriteRenderer spriteRenderer;
+        [SerializeField] private SpriteRenderer outlineRenderer;
 
         private Health _health;
         private Action _onDied;
@@ -36,8 +35,13 @@ namespace CaseGame.Entities
             if (spriteRenderer != null)
             {
                 spriteRenderer.sprite = definition.Sprite;
-                // Reset any leftover selection tint from a previous life of this pooled instance.
-                spriteRenderer.color = Color.white;
+            }
+
+            if (outlineRenderer != null)
+            {
+                outlineRenderer.sprite = definition.Sprite;
+                // Reset any leftover selection outline from a previous life of this pooled instance.
+                outlineRenderer.enabled = false;
             }
         }
 
@@ -46,12 +50,12 @@ namespace CaseGame.Entities
             _health.ApplyDamage(amount);
         }
 
-        /// <summary>Visual-only selection feedback (Selection decides *what's* selected; this just renders it) — tints the same sprite every entity already has, so no new prefab child is needed.</summary>
+        /// <summary>Visual-only selection feedback (Selection decides *what's* selected; this just renders it) — toggles a dedicated outline child renderer (same sprite, <c>SpriteSelectionOutline</c> shader) rather than tinting the real sprite, so full-color art doesn't get muddied by a color multiply (same reasoning as the Placement ghost's desaturate-then-tint approach).</summary>
         public void SetSelected(bool selected)
         {
-            if (spriteRenderer != null)
+            if (outlineRenderer != null)
             {
-                spriteRenderer.color = selected ? SelectedTint : Color.white;
+                outlineRenderer.enabled = selected;
             }
         }
 

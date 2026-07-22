@@ -7,8 +7,8 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 021 (`Building events rearchitecture`), 2026-07-22. Compile clean,
-**160/160 EditMode tests passing** (153 prior + 7 new).
+**Last report:** 022 (`Selection polish`), 2026-07-22. Compile clean,
+**161/161 EditMode tests passing** (160 prior + 1 new).
 
 **Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
 Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
@@ -39,7 +39,14 @@ it, `PlacementController` subscribes and does the actual removal (`ReleaseFootpr
 `BuildingFactory.Release`, zero Health involvement), `SelectionController` subscribes to clear a
 stale selection reactively (removal no longer sets `IsDead` for the old lazy check to catch).
 
-See ARCHITECTURE.md decisions log #52–55 for the full reasoning on each.
+**Report 022 (this one) — item 10 off the backlog, "Selection polish."** Replaced
+`GameEntityBase.SetSelected`'s color-tint feedback with a real outline: new hand-authored
+`SpriteSelectionOutline.shader`/`M_SpriteSelectionOutline.mat` (neighbor-alpha-sampling ring,
+same style as the Placement ghost's shader) drawn by a new `outlineRenderer` child on all 5
+entity prefabs, toggled via `SpriteRenderer.enabled`. Wired via a throwaway editor script,
+verified by reading the regenerated prefab/material files back, then deleted per policy.
+
+See ARCHITECTURE.md decisions log #52–56 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -60,19 +67,15 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–021):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–022):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
-~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~.
+~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-10. **Selection polish**:
-    - Selection outline visual for units — a real outline (shader/sprite-mask/child renderer),
-      likely alongside or replacing `GameEntityBase.SetSelected`'s current color-tint approach
-      (decision #38's fix would still apply — reset on `Initialize` for pooled reuse).
 11. **Movement timing fix** — `SoldierBase.MoveSpeed` should mean "N grid cells per second,"
     with a **diagonal step counting as 1 cell**, not √2 world-distance units (today
     `FollowPath`'s `Vector3.MoveTowards(..., MoveSpeed * Time.deltaTime)` moves at a constant

@@ -922,10 +922,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 262034756}
     m_Modifications:
-    - target: {fileID: 3970444431102925785, guid: 2a20e960adac7d34599aa008e8b529bc, type: 3}
-      propertyPath: removalRequestedChannel
-      value: 
-      objectReference: {fileID: 11400000, guid: df95d91e968d4134795c0a060106e12e, type: 2}
     - target: {fileID: 3970444431102925786, guid: 2a20e960adac7d34599aa008e8b529bc, type: 3}
       propertyPath: m_Pivot.x
       value: 1
