@@ -119,19 +119,60 @@ Report 017 "purely mechanically works." Grouped by which module(s) each touches,
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-12. **Ranged combat**:
-    - `UnitDefinition` gains a `ranged` bool and an `attackRange` field (footprint-cell units,
-      presumably) — melee units can have `attackRange` &gt; 1 too (just no projectile); only
-      `ranged` units fire one.
-    - Change one soldier (human suggests Soldier 2) to an **Archer** — ranged attack, fires a
-      simple non-colliding projectile visual (a moving GameObject/particle tracking toward the
-      target, dealing damage on arrival — no physics/collision needed, purely visual timing).
-    - **Attack-range enforcement**: right-click attack while out of range should move the
-      soldier to the nearest in-range cell first, *then* attack — this directly supersedes
-      decision #37 ("Right-click attack is instant and range-less... no textual basis in the
-      brief for range enforcement"). That decision was correct *for the brief as written*; this
-      is the human explicitly choosing to go beyond the brief's minimum for better game feel —
+12. **Ranged combat & combat overhaul** (expanded 2026-07-22 with the human's detailed
+    follow-up — this is now a materially bigger item than the original 3 bullets):
+    - `UnitDefinition` gains: `ranged` (bool), `attackRange` (footprint-cell units; melee units
+      can have `attackRange` &gt; 1 too — they just never fire a projectile, only `ranged` units
+      do), and a new `attackSpeed` field. *Assumption, confirm at implementation time*: attacks
+      per second, mirroring `MoveSpeed`'s existing "N per second" convention (decisions log #57)
+      — the human said "attack speed" without specifying the exact unit.
+    - **Sustained auto-attack loop, not a single instant hit** — applies uniformly to melee and
+      ranged (the human's wording was "attack input" generically, not ranged-specific). Once an
+      attack begins, the unit keeps attacking the same target automatically, once every
+      `1 / attackSpeed` seconds, until the target either leaves `attackRange` or dies. Today's
+      `SoldierBase.TryAttack` is a single instant call (decision #37) — this replaces that with
+      persistent per-soldier attack state (current target + timer), most likely coroutine-driven
+      to mirror `MoveTo`/`FollowPath`'s existing pattern (brief-mandated Coroutine usage).
+    - **Cancellation**: the loop stops if the unit is given a move order — right-clicking an
+      empty cell while selected, or being commanded to move any other way. **Confirmed with the
+      human**: right-clicking a *different, valid* attack target while already attacking
+      switches immediately onto the new target (standard RTS convention, no "attack lock" state
+      needed) rather than being blocked until the current attack is canceled first.
+    - **Move-then-attack, corrected**: a unit given an attack command while out of range paths
+      to the *nearest cell within `attackRange` of the target's current cell* — not onto the
+      target's own cell — then starts the auto-attack loop from there. A melee unit with
+      `attackRange = 1` ends up on an adjacent cell (explicitly confirmed as the intended
+      behavior); a melee unit with a larger configured `attackRange` stops that many cells away
+      instead. Same code path for melee and ranged — only the projectile visual differs.
+    - **Ranged projectile visual** (fires only when `ranged == true`): purely a visual indicator
+      — no `Collider`/`Rigidbody`, never collides with any `GameEntity` it passes over — and
+      **actively re-tracks the target's current position every frame while in flight**, not a
+      fixed straight-line trajectory toward a snapshot position, since the target may be moving
+      and this is needed for visual clarity about which unit is shooting whom. Damage applies on
+      arrival at the target's *actual* position, not a precomputed impact point/time.
+    - **Particle System vs. MonoBehaviour — determined** (human asked the agent to decide this):
+      a plain pooled MonoBehaviour-driven projectile, not a Shuriken `ParticleSystem`. The
+      requirement is precise per-target position tracking plus an exact "arrived → apply damage"
+      trigger; reproducing that with `ParticleSystem` would mean manually driving individual
+      particles via `SetParticles`/`GetParticles` every frame anyway — no ergonomic win over a
+      MonoBehaviour, while losing straightforward `Update()`-based homing and clean
+      damage-on-arrival timing. `ParticleSystem` is still the right tool for a *separate*, later
+      concern (impact bursts, muzzle flash — see backlog item 19) — not for the projectile's own
+      flight/tracking, which is this item's actual scope.
+    - **Pooling**: since the above determination means prefab instances, pool them in their own
+      dedicated `PrefabPool&lt;T&gt;` (mirrors `BuildingFactory`/`UnitFactory`, decision #18) — not
+      reused from any other existing pool.
+    - **No unit-vs-unit collision** (explicitly confirmed acceptable): units may path through one
+      another en route to a destination; this item does not add unit-vs-unit
+      blocking/collision — consistent with decision #54's existing scope boundary (routing only
+      ever needs to go around *buildings*, GI-7/8, not other units).
+    - **Attack-range enforcement** (unchanged from before): this directly supersedes decision #37
+      ("Right-click attack is instant and range-less... no textual basis in the brief for range
+      enforcement"). That decision was correct *for the brief as written*; this is the human
+      explicitly choosing to go beyond the brief's minimum for better game feel —
       update/append to decision #37 when this lands rather than silently overwriting it.
+    - Change one soldier (human suggests Soldier 2) to an **Archer** — ranged, uses the
+      projectile visual above.
 14. **UI visual polish**:
     - Banner header at the top of the Production Menu and Information Panel (per the human's
       reference mockup) — **not** on the Game Board.
