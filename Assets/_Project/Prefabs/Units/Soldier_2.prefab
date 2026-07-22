@@ -69,6 +69,7 @@ GameObject:
   - component: {fileID: 4742930241997168764}
   - component: {fileID: 1084404046764535485}
   - component: {fileID: 5042813068091128468}
+  - component: {fileID: 9191984676699404384}
   m_Layer: 0
   m_Name: Visuals
   m_TagString: Untagged
@@ -164,6 +165,19 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &9191984676699404384
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3518123369925778331}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94c058babb0e86348b78ddda84d8476b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  soldier: {fileID: 9010477443947736692}
 --- !u!1 &4545764828670120125
 GameObject:
   m_ObjectHideFlags: 0

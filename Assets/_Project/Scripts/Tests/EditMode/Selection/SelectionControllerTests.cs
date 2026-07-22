@@ -288,6 +288,41 @@ namespace CaseGame.Tests.EditMode.Selection
         }
 
         [Test]
+        public void HandleProduceRequested_SoldiersSelected_ClearsSelection()
+        {
+            var soldier = CreateSoldier();
+            _controller.HandleLeftClick(soldier, additive: false);
+
+            _controller.HandleProduceRequested(default);
+
+            Assert.AreEqual(0, _controller.SelectedSoldiers.Count);
+
+            DestroySoldier(soldier);
+        }
+
+        [Test]
+        public void HandleProduceRequested_BuildingSelected_ClearsSelectionAndRaisesNull()
+        {
+            var building = CreateBuilding();
+            _controller.HandleLeftClick(building, additive: false);
+            BuildingBase received = building;
+            _channel.Subscribe(b => received = b);
+
+            _controller.HandleProduceRequested(default);
+
+            Assert.IsNull(_controller.SelectedBuilding);
+            Assert.IsNull(received);
+
+            DestroyBuilding(building);
+        }
+
+        [Test]
+        public void HandleProduceRequested_NothingSelected_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _controller.HandleProduceRequested(default));
+        }
+
+        [Test]
         public void ClearSelection_DeselectsSoldiersAndBuildingAndRaisesNull()
         {
             var building = CreateBuilding();

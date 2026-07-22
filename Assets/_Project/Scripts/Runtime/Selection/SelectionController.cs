@@ -29,12 +29,22 @@ namespace CaseGame.Selection
     /// <see cref="Update"/>'s mouse/hit-test reading — the same "extract the testable decision,
     /// keep the MonoBehaviour thin" pattern used by <c>PlacementController</c>/
     /// <c>ProductionMenuController</c>.
+    ///
+    /// As of Report 035, also subscribes to the Production Menu's "produce" request
+    /// (<see cref="HandleProduceRequested"/>) and clears the selection when one comes in — the
+    /// same channel <c>PlacementController</c> independently reacts to by starting placement.
+    /// This has no direct reference to <c>PlacementController</c> at all: it fixes a click-
+    /// ordering race (this controller and Placement's each reading the same click independently,
+    /// with no guaranteed order between them) by removing the stale selection that race could act
+    /// on, rather than trying to make the ordering itself reliable — see ARCHITECTURE.md
+    /// decisions log.
     /// </summary>
     public class SelectionController : MonoBehaviour
     {
         [SerializeField] private Camera gameCamera;
         [SerializeField] private SelectedBuildingEventChannel selectedBuildingChannel;
         [SerializeField] private BuildingRemovalRequestedEventChannel removalRequestedChannel;
+        [SerializeField] private BuildingCatalogEntryEventChannel produceRequestedChannel;
 
         private GridModel _grid;
         private ProjectileFactory _projectileFactory;
@@ -57,6 +67,11 @@ namespace CaseGame.Selection
             {
                 removalRequestedChannel.Subscribe(HandleBuildingRemoved);
             }
+
+            if (produceRequestedChannel != null)
+            {
+                produceRequestedChannel.Subscribe(HandleProduceRequested);
+            }
         }
 
         private void OnDisable()
@@ -64,6 +79,11 @@ namespace CaseGame.Selection
             if (removalRequestedChannel != null)
             {
                 removalRequestedChannel.Unsubscribe(HandleBuildingRemoved);
+            }
+
+            if (produceRequestedChannel != null)
+            {
+                produceRequestedChannel.Unsubscribe(HandleProduceRequested);
             }
         }
 
@@ -74,6 +94,26 @@ namespace CaseGame.Selection
             {
                 SetSelectedBuilding(null);
             }
+        }
+
+        /// <summary>
+        /// Reacts to the Production Menu's "produce" click (<see cref="BuildingCatalogEntryEventChannel"/>
+        /// — the same channel <c>PlacementController</c> independently subscribes to in order to
+        /// begin placement, decoupled here the same way) by clearing the current selection.
+        /// Fixes a real bug (human-reported): <c>PlacementController</c> and this controller each
+        /// independently read the same right/left-click in their own <c>Update()</c>, with no
+        /// guaranteed ordering between them — cancelling a placement could still issue a move
+        /// order to a soldier selected *before* placement started, and committing one could
+        /// select-then-immediately-reselect in a confusing order. Clearing the selection the
+        /// instant placement is requested removes the stale selection entirely, so neither
+        /// controller's click handling has anything conflicting left to act on — no shared
+        /// reference or click-ordering guarantee needed between the two controllers at all. A
+        /// newly-placed building becoming the selection afterward (via the normal left-click
+        /// hit-test once it exists) is expected, not a bug.
+        /// </summary>
+        public void HandleProduceRequested(BuildingCatalogEntry entry)
+        {
+            ClearSelection();
         }
 
         /// <param name="hitEntity">Whatever was under the cursor, or null for empty ground.</param>

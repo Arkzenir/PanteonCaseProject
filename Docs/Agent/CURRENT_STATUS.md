@@ -7,7 +7,37 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 033 (`Unit animations`), 2026-07-23 — backlog item 18. `SoldierBase` gained an
+**Last report:** 035 (`Selection/placement race fix, corrected`), 2026-07-23 — the human found
+Report 034's placement/selection fix (decision #69(c)) didn't actually work: `PlacementController`/
+`SelectionController`'s `Update()`s have no guaranteed execution order, so the `IsPlacing` guard
+only helped in whichever frames Placement happened to run second — cancelling still moved the
+selected unit, and committing still (re)selected in a confusing order. The human correctly
+diagnosed the race themselves and offered two ways forward; went with their simpler one:
+`SelectionController` no longer references `PlacementController` at all — it now independently
+subscribes to the same `BuildingCatalogEntryEventChannel` `PlacementController` already reacts to,
+and clears the current selection the instant a placement is requested. Removing the stale
+selection means the click-ordering race can no longer produce a wrong result for either click,
+regardless of which controller's `Update()` runs first — no shared reference, no ordering
+guarantee, no `ProjectSettings/` change needed. A newly-placed building becoming the selection
+afterward is expected (human-confirmed acceptable). 231/231 EditMode tests passing.
+
+**Report 034 (`Post-hand-test polish/bugfix pass`), 2026-07-23** — 4 human-flagged items
+after playtesting Report 033's animations. (1) Units now flip horizontally to face movement/
+attack direction — `GameEntityBase.SetFlippedHorizontally` uses `SpriteRenderer.flipX` on both
+the sprite and its selection outline (countered the human's own suggested `transform.localScale`
+approaches, per their invitation, since `flipX` has zero collider/hierarchy blast radius). (2) The
+Archer's arrow now launches from a `ReleaseAttack()` call fired by an Animation Event on
+`Archer_Shoot_Blue.anim` (via a new `SoldierAnimationEvents` relay on `Visuals`) instead of the
+instant the attack tick starts — melee unaffected. (3) Fixed a real bug: cancelling/committing a
+building placement with right/left-click was *also* moving/attacking with or deselecting the
+current selection underneath the ghost, since `PlacementController`/`SelectionController` each
+read the same click independently — `SelectionController` now skips its own `Update()` entirely
+while a `PlacementController` reports `IsPlacing`. (4) Fixed camera zoom: Windows' Input System
+reports ±120 per physical scroll notch (not ~±1), so `zoomSpeed` was being multiplied ~120× too
+much, letting one notch blow through the whole min/max range — a new `NotchesFromRawScrollDelta`
+converts before `Zoom` is called. 228/228 EditMode tests passing.
+
+**Report 033 (`Unit animations`), 2026-07-23** — backlog item 18. `SoldierBase` gained an
 optional `Animator` field (mirrors `GameEntityBase`'s direct `spriteRenderer`/`outlineRenderer`
 handles) driving `IsMoving` (bool, wraps `FollowPath`, reset in `CancelAction` so an interrupted
 move never sticks) and `Attack` (trigger, fired once per `PerformAttack`). The Tiny Swords
@@ -231,13 +261,14 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–033):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–035):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
 ~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
 ~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~,
-~~Procedural island tilemap generation~~, ~~Unit animations~~.
+~~Procedural island tilemap generation~~, ~~Unit animations~~,
+~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the

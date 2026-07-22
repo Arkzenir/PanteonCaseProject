@@ -44,6 +44,10 @@ namespace CaseGame.Entities
                 // Reset any leftover selection outline from a previous life of this pooled instance.
                 outlineRenderer.enabled = false;
             }
+
+            // Reset any leftover horizontal flip from a previous life of this pooled instance —
+            // same pooled-reuse hazard as the outline reset above.
+            SetFlippedHorizontally(false);
         }
 
         public void ApplyDamage(int amount)
@@ -57,6 +61,20 @@ namespace CaseGame.Entities
             if (outlineRenderer != null)
             {
                 outlineRenderer.enabled = selected;
+            }
+        }
+
+        /// <summary>Mirrors both the real sprite and its selection outline horizontally (human-requested unit facing, Report 034) — applied to both renderers together so the outline never drifts out of sync with the sprite it's supposed to trace. A plain protected method, not a public one: only a subclass decides its own facing (<see cref="Units.SoldierBase"/>), nothing external needs to flip an entity from the outside the way <see cref="SetSelected"/> is driven externally by Selection.</summary>
+        protected void SetFlippedHorizontally(bool flipped)
+        {
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.flipX = flipped;
+            }
+
+            if (outlineRenderer != null)
+            {
+                outlineRenderer.flipX = flipped;
             }
         }
 

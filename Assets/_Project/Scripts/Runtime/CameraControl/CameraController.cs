@@ -22,6 +22,9 @@ namespace CaseGame.CameraControl
     /// </summary>
     public class CameraController : MonoBehaviour
     {
+        /// <summary>Windows reports one physical mouse-wheel notch as ±120 on <c>Mouse.scroll</c> (matching the legacy WHEEL_DELTA convention), not a small ±1-ish value — dividing by this turns the raw Input System delta into "notches" so <see cref="zoomSpeed"/> means orthographic-size change per notch, not per raw input unit. Without this, one physical notch (120 * zoomSpeed) could swing across the entire min/max range in a single tick (human-reported, Report 034).</summary>
+        private const float RawScrollUnitsPerNotch = 120f;
+
         [SerializeField] private Camera targetCamera;
         [SerializeField] private float zoomSpeed = 2f;
         [SerializeField] private float minOrthographicSize = 4f;
@@ -75,6 +78,9 @@ namespace CaseGame.CameraControl
             return low > high ? (min + max) * 0.5f : Mathf.Clamp(value, low, high);
         }
 
+        /// <summary>Converts a raw Input System mouse-wheel delta into notches (see <see cref="RawScrollUnitsPerNotch"/>). Pure so the conversion is directly testable independent of a live <see cref="Mouse"/> device.</summary>
+        public static float NotchesFromRawScrollDelta(float rawScrollDelta) => rawScrollDelta / RawScrollUnitsPerNotch;
+
         private void ApplyBoundsClamp()
         {
             var clamped = ClampToBounds(targetCamera.transform.position, targetCamera.orthographicSize, targetCamera.aspect, _boundsMin, _boundsMax);
@@ -96,7 +102,7 @@ namespace CaseGame.CameraControl
             var scroll = Mouse.current.scroll.ReadValue().y;
             if (!Mathf.Approximately(scroll, 0f))
             {
-                Zoom(scroll);
+                Zoom(NotchesFromRawScrollDelta(scroll));
             }
         }
     }

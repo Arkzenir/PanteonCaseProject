@@ -112,6 +112,85 @@ namespace CaseGame.Tests.EditMode.Units
         }
 
         [Test]
+        public void FacesLeft_TargetXLessThanCurrentX_ReturnsTrue()
+        {
+            Assert.IsTrue(SoldierBase.FacesLeft(fromX: 5f, toX: 0f));
+        }
+
+        [Test]
+        public void FacesLeft_TargetXGreaterThanCurrentX_ReturnsFalse()
+        {
+            Assert.IsFalse(SoldierBase.FacesLeft(fromX: 0f, toX: 5f));
+        }
+
+        [Test]
+        public void FacesLeft_SameX_ReturnsFalse()
+        {
+            // Ties default to "right" (unflipped) — matches the art's own default-right orientation.
+            Assert.IsFalse(SoldierBase.FacesLeft(fromX: 3f, toX: 3f));
+        }
+
+        [Test]
+        public void ReleaseAttack_NoPendingTarget_DoesNotThrow()
+        {
+            var go = new GameObject("Soldier");
+            var soldier = go.AddComponent<Soldier>();
+            var definition = CreateDefinition(10, 5);
+            soldier.Initialize(definition);
+
+            Assert.DoesNotThrow(() => soldier.ReleaseAttack());
+
+            Object.DestroyImmediate(go);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void MoveTo_TowardCellToTheLeft_FlipsSpriteHorizontally()
+        {
+            var (soldier, spriteRenderer) = CreateSoldierWithSpriteRenderer();
+            var definition = CreateDefinition(10, 5);
+            soldier.Initialize(definition);
+            var grid = CreateGrid(5, 5);
+            soldier.transform.position = grid.CellCenterToWorld(new Vector2Int(3, 2));
+
+            soldier.MoveTo(new Vector2Int(0, 2), grid); // strictly to the left
+
+            Assert.IsTrue(spriteRenderer.flipX);
+
+            Object.DestroyImmediate(soldier.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void MoveTo_TowardCellToTheRight_DoesNotFlipSprite()
+        {
+            var (soldier, spriteRenderer) = CreateSoldierWithSpriteRenderer();
+            var definition = CreateDefinition(10, 5);
+            soldier.Initialize(definition);
+            var grid = CreateGrid(5, 5);
+            soldier.transform.position = grid.CellCenterToWorld(new Vector2Int(0, 2));
+
+            soldier.MoveTo(new Vector2Int(4, 2), grid); // strictly to the right
+
+            Assert.IsFalse(spriteRenderer.flipX);
+
+            Object.DestroyImmediate(soldier.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        private static (Soldier soldier, SpriteRenderer spriteRenderer) CreateSoldierWithSpriteRenderer()
+        {
+            var go = new GameObject("Soldier");
+            var spriteRenderer = new GameObject("Visuals").AddComponent<SpriteRenderer>();
+            spriteRenderer.transform.SetParent(go.transform);
+            var soldier = go.AddComponent<Soldier>();
+            var so = new SerializedObject(soldier);
+            so.FindProperty("spriteRenderer").objectReferenceValue = spriteRenderer;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return (soldier, spriteRenderer);
+        }
+
+        [Test]
         public void MoveTo_SameCellAsCurrentPosition_DoesNotThrow()
         {
             var go = new GameObject("Soldier");

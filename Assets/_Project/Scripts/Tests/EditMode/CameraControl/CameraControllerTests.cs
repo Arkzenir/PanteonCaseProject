@@ -151,6 +151,41 @@ namespace CaseGame.Tests.EditMode.CameraControl
         }
 
         [Test]
+        public void NotchesFromRawScrollDelta_OneNotch_ReturnsOne()
+        {
+            Assert.AreEqual(1f, CameraController.NotchesFromRawScrollDelta(120f), 0.0001f);
+        }
+
+        [Test]
+        public void NotchesFromRawScrollDelta_OneNotchBackward_ReturnsMinusOne()
+        {
+            Assert.AreEqual(-1f, CameraController.NotchesFromRawScrollDelta(-120f), 0.0001f);
+        }
+
+        [Test]
+        public void NotchesFromRawScrollDelta_HalfNotch_ReturnsHalf()
+        {
+            Assert.AreEqual(0.5f, CameraController.NotchesFromRawScrollDelta(60f), 0.0001f);
+        }
+
+        [Test]
+        public void Zoom_OneNotchWorthOfNotches_DoesNotJumpStraightToMinOrMax()
+        {
+            // Reproduces the human's exact report: zoomSpeed 0.2, min 2, max 20 — one raw
+            // 120-unit notch must NOT swing the full range in a single tick.
+            var so = new SerializedObject(_controller);
+            so.FindProperty("zoomSpeed").floatValue = 0.2f;
+            so.FindProperty("minOrthographicSize").floatValue = 2f;
+            so.FindProperty("maxOrthographicSize").floatValue = 20f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            _camera.orthographicSize = 10f;
+
+            _controller.Zoom(CameraController.NotchesFromRawScrollDelta(120f));
+
+            Assert.AreEqual(9.8f, _camera.orthographicSize, 0.0001f);
+        }
+
+        [Test]
         public void Zoom_PastSetBounds_ReclampsPosition()
         {
             _controller.SetBounds(new Vector2(0f, 0f), new Vector2(10f, 10f));

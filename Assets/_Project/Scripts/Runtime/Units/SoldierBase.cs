@@ -29,6 +29,9 @@ namespace CaseGame.Units
         public new UnitDefinition Definition => (UnitDefinition)base.Definition;
 
         private Coroutine _actionCoroutine;
+        private GameEntityBase _pendingRangedTarget;
+        private int _pendingRangedDamage;
+        private ProjectileFactory _pendingProjectileFactory;
 
         /// <summary>Whether a move or attack coroutine is currently running — exposed for observers/tests, mirroring <c>PlacementController.IsPlacing</c>'s pattern.</summary>
         public bool IsActing => _actionCoroutine != null;
@@ -105,6 +108,22 @@ namespace CaseGame.Units
             return Vector3.Lerp(start, end, duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f);
         }
 
+        /// <summary>Whether facing from X <paramref name="fromX"/> toward X <paramref name="toX"/> means facing left (the art's default, unflipped orientation faces right) — used for both movement-direction and attack-target-direction sprite flipping. Callers should only act on this when the two X values actually differ; a purely-vertical move/attack has no defined horizontal facing and should just keep whatever facing was already set. Pure and testable.</summary>
+        public static bool FacesLeft(float fromX, float toX) => toX < fromX;
+
+        /// <summary>Called via Animation Event (relayed from the <c>Visuals</c> child's <see cref="Animator"/> — see <see cref="SoldierAnimationEvents"/>) at the moment a ranged attack's projectile should actually launch, e.g. when the bow visibly releases the arrow, rather than the instant the attack tick started (human-requested, Report 034). No-ops if the pending target died, or was cleared by a newer attack overwriting it, before the event fired.</summary>
+        public void ReleaseAttack()
+        {
+            if (_pendingRangedTarget == null || _pendingRangedTarget.IsDead)
+            {
+                _pendingRangedTarget = null;
+                return;
+            }
+
+            _pendingProjectileFactory.Launch(transform.position, _pendingRangedTarget, _pendingRangedDamage);
+            _pendingRangedTarget = null;
+        }
+
         private IEnumerator MoveRoutine(GridModel grid, List<Vector2Int> path)
         {
             yield return FollowPath(grid, path);
@@ -148,9 +167,24 @@ namespace CaseGame.Units
             _actionCoroutine = null;
         }
 
-        /// <summary>Melee attacks apply damage instantly (unchanged brief-minimum behavior); ranged attacks launch a tracked <see cref="Projectile"/> instead — same code path either way, only the projectile visual differs (human-directed). Fires the <c>Attack</c> animation trigger once per call, the single point every actual hit/shot passes through.</summary>
+        /// <summary>
+        /// Melee attacks apply damage instantly (unchanged brief-minimum behavior). Ranged
+        /// attacks launch a tracked <see cref="Projectile"/> instead — but only immediately if
+        /// there's no <see cref="animator"/> to synchronize with; when one exists, the launch is
+        /// deferred to <see cref="ReleaseAttack"/> (an Animation Event partway through the Shoot
+        /// clip, human-requested so the arrow visibly leaves the bow instead of the moment the
+        /// attack tick started). Fires the <c>Attack</c> animation trigger once per call, the
+        /// single point every actual hit/shot passes through, and faces this soldier toward the
+        /// target first.
+        /// </summary>
         private void PerformAttack(GameEntityBase target, ProjectileFactory projectileFactory)
         {
+            var deltaX = target.transform.position.x - transform.position.x;
+            if (!Mathf.Approximately(deltaX, 0f))
+            {
+                SetFlippedHorizontally(FacesLeft(0f, deltaX));
+            }
+
             if (animator != null)
             {
                 animator.SetTrigger(AttackHash);
@@ -158,7 +192,16 @@ namespace CaseGame.Units
 
             if (Definition.Ranged && projectileFactory != null)
             {
-                projectileFactory.Launch(transform.position, target, Definition.AttackDamage);
+                if (animator != null)
+                {
+                    _pendingRangedTarget = target;
+                    _pendingRangedDamage = Definition.AttackDamage;
+                    _pendingProjectileFactory = projectileFactory;
+                }
+                else
+                {
+                    projectileFactory.Launch(transform.position, target, Definition.AttackDamage);
+                }
             }
             else
             {
@@ -181,6 +224,12 @@ namespace CaseGame.Units
                 var startPosition = transform.position;
                 var targetPosition = (Vector3)grid.CellCenterToWorld(path[i]);
                 var elapsed = 0f;
+
+                var deltaX = targetPosition.x - startPosition.x;
+                if (!Mathf.Approximately(deltaX, 0f))
+                {
+                    SetFlippedHorizontally(FacesLeft(0f, deltaX));
+                }
 
                 while (elapsed < stepDuration)
                 {
