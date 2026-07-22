@@ -33,8 +33,27 @@ namespace CaseGame.Environment
 
         private void OnValidate()
         {
+#if UNITY_EDITOR
+            // Deferred: OnValidate runs mid-serialization, and Tilemap.SetTile internally uses
+            // SendMessage, which Unity forbids in that window (harmless "SendMessage cannot be
+            // called during Awake, CheckConsistency, or OnValidate" warning otherwise).
+            UnityEditor.EditorApplication.delayCall += DeferredRebuildTerrain;
+#endif
+        }
+
+#if UNITY_EDITOR
+        private void DeferredRebuildTerrain()
+        {
+            UnityEditor.EditorApplication.delayCall -= DeferredRebuildTerrain;
+
+            if (this == null)
+            {
+                return;
+            }
+
             RebuildTerrain();
         }
+#endif
 
         private void Update()
         {

@@ -53,9 +53,28 @@ namespace CaseGame.Grid
 
         private void OnValidate()
         {
+#if UNITY_EDITOR
+            // Deferred: OnValidate runs mid-serialization, and Tilemap/Mesh writes internally use
+            // SendMessage, which Unity forbids in that window (harmless "SendMessage cannot be
+            // called during Awake, CheckConsistency, or OnValidate" warning otherwise).
+            UnityEditor.EditorApplication.delayCall += DeferredRebuildMesh;
+#endif
+        }
+
+#if UNITY_EDITOR
+        private void DeferredRebuildMesh()
+        {
+            UnityEditor.EditorApplication.delayCall -= DeferredRebuildMesh;
+
+            if (this == null)
+            {
+                return;
+            }
+
             EnsureComponents();
             RebuildMesh();
         }
+#endif
 
         private void Update()
         {
