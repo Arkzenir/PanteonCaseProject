@@ -40,5 +40,50 @@ namespace CaseGame.Tests.EditMode.Units
 
             Assert.Greater(definition.MoveSpeed, 0f);
         }
+
+        [Test]
+        public void OnValidate_ClampsAttackRangeToAtLeastOne()
+        {
+            var definition = ScriptableObject.CreateInstance<UnitDefinition>();
+            var so = new SerializedObject(definition);
+            so.FindProperty("attackRange").intValue = 0;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            InvokeOnValidate(definition);
+
+            Assert.GreaterOrEqual(definition.AttackRange, 1);
+        }
+
+        [Test]
+        public void OnValidate_ClampsAttackSpeedToAtLeastMinimum()
+        {
+            var definition = ScriptableObject.CreateInstance<UnitDefinition>();
+            var so = new SerializedObject(definition);
+            so.FindProperty("attackSpeed").floatValue = -1f;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            InvokeOnValidate(definition);
+
+            Assert.Greater(definition.AttackSpeed, 0f);
+        }
+
+        [Test]
+        public void Ranged_DefaultsToFalse()
+        {
+            var definition = ScriptableObject.CreateInstance<UnitDefinition>();
+
+            Assert.IsFalse(definition.Ranged);
+        }
+
+        [Test]
+        public void Ranged_CanBeSetTrue()
+        {
+            var definition = ScriptableObject.CreateInstance<UnitDefinition>();
+            var so = new SerializedObject(definition);
+            so.FindProperty("ranged").boolValue = true;
+            so.ApplyModifiedPropertiesWithoutUndo();
+
+            Assert.IsTrue(definition.Ranged);
+        }
     }
 }

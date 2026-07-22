@@ -22,6 +22,8 @@ namespace CaseGame.Gameplay
         [SerializeField] private GridView gridView;
         [SerializeField] private Transform buildingsContainer;
         [SerializeField] private Transform unitsContainer;
+        [SerializeField] private Transform projectilesContainer;
+        [SerializeField] private Projectile projectilePrefab;
         [SerializeField] private PlacementController placementController;
         [SerializeField] private SelectionController selectionController;
         [SerializeField] private UnitProductionController unitProductionController;
@@ -31,9 +33,10 @@ namespace CaseGame.Gameplay
             var grid = gridView.GridModel;
             var buildingFactory = new BuildingFactory(buildingsContainer);
             var unitFactory = new UnitFactory(unitsContainer);
+            var projectileFactory = new ProjectileFactory(projectilePrefab, projectilesContainer);
 
             placementController.Initialize(grid, buildingFactory);
-            selectionController.Initialize(grid);
+            selectionController.Initialize(grid, projectileFactory);
             unitProductionController.Initialize(unitFactory, grid);
         }
     }

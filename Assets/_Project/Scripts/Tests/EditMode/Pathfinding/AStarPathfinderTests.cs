@@ -146,5 +146,64 @@ namespace CaseGame.Tests.EditMode.Pathfinding
             // The direct diagonal step is illegal here, so the valid detour must take more than 2 cells.
             Assert.Greater(path.Count, 2);
         }
+
+        [Test]
+        public void FindApproachCell_TargetAdjacent_ReturnsNearestFreeCellWithinRange()
+        {
+            var grid = CreateGrid(10, 10);
+
+            var approach = AStarPathfinder.FindApproachCell(grid, new Vector2Int(5, 5), new Vector2Int(2, 2), range: 1);
+
+            Assert.IsTrue(approach.HasValue);
+            Assert.AreEqual(1, Mathf.Max(Mathf.Abs(approach.Value.x - 2), Mathf.Abs(approach.Value.y - 2)));
+            // Of the 8 cells adjacent to (2,2), (3,3) is closest to the attacker at (5,5).
+            Assert.AreEqual(new Vector2Int(3, 3), approach.Value);
+        }
+
+        [Test]
+        public void FindApproachCell_NeverReturnsTheTargetCellItself()
+        {
+            var grid = CreateGrid(5, 5);
+
+            var approach = AStarPathfinder.FindApproachCell(grid, new Vector2Int(0, 0), new Vector2Int(2, 2), range: 3);
+
+            Assert.AreNotEqual(new Vector2Int(2, 2), approach.Value);
+        }
+
+        [Test]
+        public void FindApproachCell_AllCandidatesOccupied_ReturnsNull()
+        {
+            var grid = CreateGrid(5, 5);
+            // Occupy every cell within range 1 of (2,2) except (2,2) itself.
+            for (var dx = -1; dx <= 1; dx++)
+            {
+                for (var dy = -1; dy <= 1; dy++)
+                {
+                    if (dx == 0 && dy == 0)
+                    {
+                        continue;
+                    }
+
+                    grid.SetAreaOccupied(new Vector2Int(2 + dx, 2 + dy), Vector2Int.one, true);
+                }
+            }
+
+            var approach = AStarPathfinder.FindApproachCell(grid, new Vector2Int(0, 0), new Vector2Int(2, 2), range: 1);
+
+            Assert.IsNull(approach);
+        }
+
+        [Test]
+        public void FindApproachCell_AlreadyWithinRange_ReturnsAttackersOwnCellIfFree()
+        {
+            var grid = CreateGrid(10, 10);
+
+            // Attacker's own cell (3,2) is within range 2 of the target (2,2) and unoccupied, so
+            // it's the globally-nearest candidate (distance 0) — no special-casing needed, this
+            // falls out of the general nearest-candidate search.
+            var approach = AStarPathfinder.FindApproachCell(grid, new Vector2Int(3, 2), new Vector2Int(2, 2), range: 2);
+
+            Assert.AreEqual(new Vector2Int(3, 2), approach.Value);
+        }
     }
 }

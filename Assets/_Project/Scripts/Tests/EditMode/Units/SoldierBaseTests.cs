@@ -1,4 +1,3 @@
-using CaseGame.Combat;
 using CaseGame.Grid;
 using CaseGame.Units;
 using NUnit.Framework;
@@ -9,19 +8,6 @@ namespace CaseGame.Tests.EditMode.Units
 {
     public class SoldierBaseTests
     {
-        private class FakeDamageable : IDamageable
-        {
-            public int MaxHealth => 10;
-            public int CurrentHealth => 10;
-            public bool IsDead => false;
-            public int LastDamageApplied { get; private set; } = -1;
-
-            public void ApplyDamage(int amount)
-            {
-                LastDamageApplied = amount;
-            }
-        }
-
         private static UnitDefinition CreateDefinition(int maxHealth, int attackDamage)
         {
             var definition = ScriptableObject.CreateInstance<UnitDefinition>();
@@ -60,34 +46,69 @@ namespace CaseGame.Tests.EditMode.Units
         }
 
         [Test]
-        public void TryAttack_NullTarget_DoesNotThrow()
+        public void Attack_NullTarget_DoesNotThrowAndDoesNotStartActing()
         {
             var go = new GameObject("Soldier");
             var soldier = go.AddComponent<Soldier>();
             var definition = CreateDefinition(10, 5);
             soldier.Initialize(definition);
+            var grid = CreateGrid(5, 5);
 
-            Assert.DoesNotThrow(() => soldier.TryAttack(null));
+            Assert.DoesNotThrow(() => soldier.Attack(null, grid, null));
+            Assert.IsFalse(soldier.IsActing);
 
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
         }
 
         [Test]
-        public void TryAttack_ValidTarget_AppliesDefinitionAttackDamage()
+        public void Attack_DeadTarget_DoesNotThrowAndDoesNotStartActing()
         {
             var go = new GameObject("Soldier");
             var soldier = go.AddComponent<Soldier>();
             var definition = CreateDefinition(10, 5);
             soldier.Initialize(definition);
-            var target = new FakeDamageable();
+            var grid = CreateGrid(5, 5);
 
-            soldier.TryAttack(target);
+            var targetGo = new GameObject("Target");
+            var target = targetGo.AddComponent<Soldier>();
+            var targetDefinition = CreateDefinition(10, 0);
+            target.Initialize(targetDefinition);
+            target.ApplyDamage(10); // kills it
 
-            Assert.AreEqual(5, target.LastDamageApplied);
+            Assert.DoesNotThrow(() => soldier.Attack(target, grid, null));
+            Assert.IsFalse(soldier.IsActing);
 
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
+            Object.DestroyImmediate(targetGo);
+            Object.DestroyImmediate(targetDefinition);
+        }
+
+        [Test]
+        public void ChebyshevDistance_DiagonalAndOrthogonalOffsets_ReturnsMaxOfAbsoluteDeltas()
+        {
+            Assert.AreEqual(3, SoldierBase.ChebyshevDistance(new Vector2Int(0, 0), new Vector2Int(3, 1)));
+            Assert.AreEqual(2, SoldierBase.ChebyshevDistance(new Vector2Int(0, 0), new Vector2Int(2, 2)));
+            Assert.AreEqual(0, SoldierBase.ChebyshevDistance(new Vector2Int(4, 4), new Vector2Int(4, 4)));
+        }
+
+        [Test]
+        public void IsInRange_WithinRange_ReturnsTrue()
+        {
+            Assert.IsTrue(SoldierBase.IsInRange(new Vector2Int(0, 0), new Vector2Int(1, 1), range: 1));
+        }
+
+        [Test]
+        public void IsInRange_BeyondRange_ReturnsFalse()
+        {
+            Assert.IsFalse(SoldierBase.IsInRange(new Vector2Int(0, 0), new Vector2Int(2, 0), range: 1));
+        }
+
+        [Test]
+        public void AttackInterval_ReturnsReciprocalOfAttackSpeed()
+        {
+            Assert.AreEqual(0.5f, SoldierBase.AttackInterval(2f), 0.0001f);
         }
 
         [Test]

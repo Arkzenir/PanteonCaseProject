@@ -144,6 +144,43 @@ namespace CaseGame.Pathfinding
             return (dx + dy) + (DiagonalCost - 2f * OrthogonalCost) * Mathf.Min(dx, dy);
         }
 
+        /// <summary>
+        /// Finds the nearest unoccupied, in-bounds cell within <paramref name="range"/> cells
+        /// (Chebyshev distance — matching the 8-directional movement above) of
+        /// <paramref name="target"/>, ranked by straight-line distance to <paramref name="from"/>.
+        /// Never returns <paramref name="target"/> itself. Used for "walk into attack range, then
+        /// attack" — the returned cell is a candidate destination for <see cref="FindPath"/>, not
+        /// a guarantee of reachability (a nearer candidate could be walled off while a farther one
+        /// is reachable; this picks by proximity only, same tolerance as the rest of this project's
+        /// pathfinding-adjacent code accepts).
+        /// </summary>
+        public static Vector2Int? FindApproachCell(GridModel grid, Vector2Int from, Vector2Int target, int range)
+        {
+            Vector2Int? best = null;
+            var bestSqrDistance = float.MaxValue;
+
+            for (var dx = -range; dx <= range; dx++)
+            {
+                for (var dy = -range; dy <= range; dy++)
+                {
+                    var candidate = new Vector2Int(target.x + dx, target.y + dy);
+                    if (candidate == target || !grid.IsInBounds(candidate) || grid.IsOccupied(candidate))
+                    {
+                        continue;
+                    }
+
+                    var sqrDistance = (candidate - from).sqrMagnitude;
+                    if (sqrDistance < bestSqrDistance)
+                    {
+                        bestSqrDistance = sqrDistance;
+                        best = candidate;
+                    }
+                }
+            }
+
+            return best;
+        }
+
         private static List<Vector2Int> ReconstructPath(Node goalNode)
         {
             var path = new List<Vector2Int>();

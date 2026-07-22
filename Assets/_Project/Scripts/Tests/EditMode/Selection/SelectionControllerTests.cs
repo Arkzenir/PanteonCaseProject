@@ -1,5 +1,4 @@
 using CaseGame.Buildings;
-using CaseGame.Combat;
 using CaseGame.Grid;
 using CaseGame.Selection;
 using CaseGame.Units;
@@ -13,19 +12,6 @@ namespace CaseGame.Tests.EditMode.Selection
     {
         private class TestBuilding : BuildingBase
         {
-        }
-
-        private class FakeDamageable : IDamageable
-        {
-            public int MaxHealth => 10;
-            public int CurrentHealth => 10;
-            public bool IsDead => false;
-            public int TotalDamageApplied { get; private set; }
-
-            public void ApplyDamage(int amount)
-            {
-                TotalDamageApplied += amount;
-            }
         }
 
         private GridModel _grid;
@@ -42,7 +28,7 @@ namespace CaseGame.Tests.EditMode.Selection
             var so = new SerializedObject(_controller);
             so.FindProperty("selectedBuildingChannel").objectReferenceValue = _channel;
             so.ApplyModifiedPropertiesWithoutUndo();
-            _controller.Initialize(_grid);
+            _controller.Initialize(_grid, null); // melee-only test soldiers never touch the projectile factory
         }
 
         [TearDown]
@@ -183,29 +169,38 @@ namespace CaseGame.Tests.EditMode.Selection
         }
 
         [Test]
-        public void HandleRightClick_WithTarget_AppliesDamageFromEachSelectedSoldier()
+        public void HandleRightClick_WithTarget_EachSelectedSoldierStartsAttacking()
         {
+            // Attack is now coroutine-driven (walk into range, then a sustained tick loop) rather
+            // than an instant hit — the coroutine's own progression is Play-Mode-only verifiable
+            // (same established limitation as SoldierBase.FollowPath), so this only checks that
+            // HandleRightClick actually routes to Attack (observable via IsActing, set synchronously
+            // by StartCoroutine's return, independent of how far the coroutine body has run).
             var first = CreateSoldier(attackDamage: 5);
             var second = CreateSoldier(attackDamage: 3);
             _controller.HandleLeftClick(first, additive: false);
             _controller.HandleLeftClick(second, additive: true);
-            var target = new FakeDamageable();
+            var target = CreateBuilding();
 
             _controller.HandleRightClick(Vector2Int.zero, target);
 
-            Assert.AreEqual(8, target.TotalDamageApplied);
+            Assert.IsTrue(first.IsActing);
+            Assert.IsTrue(second.IsActing);
 
             DestroySoldier(first);
             DestroySoldier(second);
+            DestroyBuilding(target);
         }
 
         [Test]
         public void HandleRightClick_NoSelection_DoesNotThrow()
         {
-            var target = new FakeDamageable();
+            var target = CreateBuilding();
 
             Assert.DoesNotThrow(() => _controller.HandleRightClick(Vector2Int.zero, target));
-            Assert.AreEqual(0, target.TotalDamageApplied);
+            Assert.AreEqual(target.MaxHealth, target.CurrentHealth);
+
+            DestroyBuilding(target);
         }
 
         [Test]
@@ -216,15 +211,16 @@ namespace CaseGame.Tests.EditMode.Selection
             _controller.HandleLeftClick(alive, additive: false);
             _controller.HandleLeftClick(dead, additive: true);
             dead.ApplyDamage(10); // kills it (10 HP from CreateSoldier's default)
-            var target = new FakeDamageable();
+            var target = CreateBuilding();
 
             _controller.HandleRightClick(Vector2Int.zero, target);
 
-            Assert.AreEqual(5, target.TotalDamageApplied);
+            Assert.IsTrue(alive.IsActing);
             Assert.AreEqual(1, _controller.SelectedSoldiers.Count);
 
             DestroySoldier(alive);
             DestroySoldier(dead);
+            DestroyBuilding(target);
         }
 
         [Test]

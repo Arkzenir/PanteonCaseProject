@@ -30,7 +30,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
         [SetUp]
         public void SetUp()
         {
-            _panelRoot = new GameObject("Panel");
+            _panelRoot = new GameObject("Panel", typeof(RectTransform));
             _buildingIcon = new GameObject("BuildingIcon", typeof(RectTransform)).AddComponent<Image>();
             _buildingIcon.transform.SetParent(_panelRoot.transform);
             _buildingNameText = new GameObject("BuildingName", typeof(RectTransform)).AddComponent<TextMeshProUGUI>();

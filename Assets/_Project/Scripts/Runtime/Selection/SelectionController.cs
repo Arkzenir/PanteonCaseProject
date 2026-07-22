@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using CaseGame.Buildings;
-using CaseGame.Combat;
 using CaseGame.Entities;
 using CaseGame.Grid;
 using CaseGame.Units;
@@ -21,9 +20,9 @@ namespace CaseGame.Selection
     ///
     /// Visual selection feedback is <see cref="GameEntityBase.SetSelected"/> — no new prefab
     /// wiring needed, unlike Placement's ghost. Right-click attack calls
-    /// <see cref="SoldierBase.TryAttack"/> directly (instant, no range/approach — the brief
-    /// doesn't require walking into range, and <c>TryAttack</c>'s own doc comment already
-    /// anticipated Selection wiring it up exactly like this).
+    /// <see cref="SoldierBase.Attack"/>, which walks into range first if needed then sustains
+    /// the attack until the target leaves range or dies (human-directed, supersedes decision
+    /// #37's original "instant, range-less" design — see ARCHITECTURE.md decisions log).
     ///
     /// The actual decisions (<see cref="HandleLeftClick"/>/<see cref="HandleRightClick"/>) take
     /// explicit, already-resolved inputs and are callable directly, independent of
@@ -38,6 +37,7 @@ namespace CaseGame.Selection
         [SerializeField] private BuildingRemovalRequestedEventChannel removalRequestedChannel;
 
         private GridModel _grid;
+        private ProjectileFactory _projectileFactory;
         private BuildingBase _selectedBuilding;
         private readonly List<SoldierBase> _selectedSoldiers = new List<SoldierBase>();
 
@@ -45,9 +45,10 @@ namespace CaseGame.Selection
         public IReadOnlyList<SoldierBase> SelectedSoldiers => _selectedSoldiers;
 
         /// <summary>Explicit initialization (not Awake-wired), mirroring <c>PlacementController.Initialize</c> — the scene's bootstrap calls this once a <see cref="GridModel"/> exists.</summary>
-        public void Initialize(GridModel grid)
+        public void Initialize(GridModel grid, ProjectileFactory projectileFactory)
         {
             _grid = grid;
+            _projectileFactory = projectileFactory;
         }
 
         private void OnEnable()
@@ -97,8 +98,8 @@ namespace CaseGame.Selection
         }
 
         /// <param name="cell">The grid cell under the cursor — used as the move destination when there's no attack target.</param>
-        /// <param name="hitTarget">Whatever damageable was under the cursor, or null. Non-null takes priority over movement (GI-10/11).</param>
-        public void HandleRightClick(Vector2Int cell, IDamageable hitTarget)
+        /// <param name="hitTarget">Whatever entity was under the cursor, or null. Non-null takes priority over movement (GI-10/11) — <see cref="SoldierBase.Attack"/> handles walking into range first if needed, then a sustained attack loop, and switches targets immediately if a soldier was already attacking something else.</param>
+        public void HandleRightClick(Vector2Int cell, GameEntityBase hitTarget)
         {
             _selectedSoldiers.RemoveAll(soldier => soldier == null || soldier.IsDead);
 
@@ -106,7 +107,7 @@ namespace CaseGame.Selection
             {
                 if (hitTarget != null)
                 {
-                    soldier.TryAttack(hitTarget);
+                    soldier.Attack(hitTarget, _grid, _projectileFactory);
                 }
                 else
                 {
@@ -238,7 +239,7 @@ namespace CaseGame.Selection
             {
                 var worldPosition = ScreenToWorld(Mouse.current.position.ReadValue());
                 var hitEntity = HitTestEntity(worldPosition);
-                HandleRightClick(_grid.WorldToCell(worldPosition), hitEntity as IDamageable);
+                HandleRightClick(_grid.WorldToCell(worldPosition), hitEntity);
             }
         }
 

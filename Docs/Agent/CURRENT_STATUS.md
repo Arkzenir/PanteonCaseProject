@@ -7,10 +7,13 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 026 (`UI visual polish`), 2026-07-22 — backlog item 14: banner headers on the
-Production Menu and Information Panel, plus a Main Menu "How to Play" screen. Pure editor/prefab/
-scene wiring (one small code change mirroring the existing Settings-panel pattern exactly). Per
-explicit instruction, no batchmode compile/test run this turn — human is testing by eye.
+**Last report:** 027 (`Ranged combat & combat overhaul`), 2026-07-22 — backlog item 12, the
+largest single feature so far. `SoldierBase.TryAttack` (instant hit) replaced by `Attack`: walks
+into range then sustains a tick loop until the target dies or leaves range; melee/ranged share
+the path, only damage delivery differs (instant vs. a new pooled `Projectile`). Soldier 2 is now
+the Archer. 179/179 EditMode tests passing (also fixed a real pre-existing bug found along the
+way: `InfoPanelControllerTests`' `_panelRoot` lacked a `RectTransform`, breaking Report 025's
+`ForceRebuildLayoutImmediate` cast — never caught since that report's turn skipped batch testing).
 
 **Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
 Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
@@ -105,7 +108,35 @@ Done via a throwaway script, verified by reading the regenerated scene/prefab fi
 explicit instruction, no dedicated batchmode test pass — though the script's own run already
 required Unity to compile `MainMenuController.cs`'s change first.
 
-See ARCHITECTURE.md decisions log #52–61 for the full reasoning on each.
+**Report 027 (this one) — item 12, "Ranged combat & combat overhaul."** The full spec from the
+expanded backlog item (attack speed, sustained auto-attack, move-into-range, ranged projectile
+tracking, no unit collision) landed in one pass:
+- `UnitDefinition` gained `Ranged`/`AttackRange`/`AttackSpeed`. `SoldierBase.TryAttack` (a single
+  instant hit) is replaced by `Attack(target, grid, projectileFactory)` — walks into range via
+  the new `AStarPathfinder.FindApproachCell` if needed, then attacks once every
+  `1 / AttackSpeed` seconds until the target dies or leaves range. `MoveTo` and `Attack` share
+  one action-coroutine slot, so a move order cancels an attack and vice versa, and a new
+  `Attack` call on a different target switches onto it immediately (human-confirmed) — no
+  special-case "already attacking" logic needed.
+- Melee and ranged share the exact same path; only damage delivery differs
+  (`PerformAttack`) — instant for melee, a launched `Projectile` for ranged. New `Projectile`/
+  `ProjectileFactory` (`CaseGame.Units`) — a pooled, purely-visual homing indicator (no
+  `Collider`, tracks the target's live position every frame, applies damage on arrival). Chosen
+  over a `ParticleSystem` — see decisions log #62 for the reasoning.
+- Soldier 2 is now the Archer (`ranged: true`, `attackRange: 4`; sprite/damage unchanged).
+- `SelectionController.HandleRightClick` now takes `GameEntityBase` (was `IDamageable`) so it
+  can pass the target straight through to `Attack`.
+- Range/approach checks use the target's own position (not footprint-aware for buildings) to
+  avoid a circular `Units → Buildings` dependency — same reasoning as decision #43.
+- **Caught and fixed a real pre-existing bug, unrelated to this feature**, while running the
+  full test suite: `InfoPanelControllerTests`' `_panelRoot` was a plain `GameObject` lacking a
+  `RectTransform`, so Report 025's `LayoutRebuilder.ForceRebuildLayoutImmediate` cast threw —
+  never caught since that report's turn skipped batch testing. Test-only fix, no production
+  code change needed (the real `PanelContent` object always had a `RectTransform`).
+
+179/179 EditMode tests passing, 0 compile errors.
+
+See ARCHITECTURE.md decisions log #52–62 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -126,70 +157,17 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–026):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–027):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
-~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~.
+~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
+~~Ranged combat & combat overhaul~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-12. **Ranged combat & combat overhaul** (expanded 2026-07-22 with the human's detailed
-    follow-up — this is now a materially bigger item than the original 3 bullets):
-    - `UnitDefinition` gains: `ranged` (bool), `attackRange` (footprint-cell units; melee units
-      can have `attackRange` &gt; 1 too — they just never fire a projectile, only `ranged` units
-      do), and a new `attackSpeed` field. *Assumption, confirm at implementation time*: attacks
-      per second, mirroring `MoveSpeed`'s existing "N per second" convention (decisions log #57)
-      — the human said "attack speed" without specifying the exact unit.
-    - **Sustained auto-attack loop, not a single instant hit** — applies uniformly to melee and
-      ranged (the human's wording was "attack input" generically, not ranged-specific). Once an
-      attack begins, the unit keeps attacking the same target automatically, once every
-      `1 / attackSpeed` seconds, until the target either leaves `attackRange` or dies. Today's
-      `SoldierBase.TryAttack` is a single instant call (decision #37) — this replaces that with
-      persistent per-soldier attack state (current target + timer), most likely coroutine-driven
-      to mirror `MoveTo`/`FollowPath`'s existing pattern (brief-mandated Coroutine usage).
-    - **Cancellation**: the loop stops if the unit is given a move order — right-clicking an
-      empty cell while selected, or being commanded to move any other way. **Confirmed with the
-      human**: right-clicking a *different, valid* attack target while already attacking
-      switches immediately onto the new target (standard RTS convention, no "attack lock" state
-      needed) rather than being blocked until the current attack is canceled first.
-    - **Move-then-attack, corrected**: a unit given an attack command while out of range paths
-      to the *nearest cell within `attackRange` of the target's current cell* — not onto the
-      target's own cell — then starts the auto-attack loop from there. A melee unit with
-      `attackRange = 1` ends up on an adjacent cell (explicitly confirmed as the intended
-      behavior); a melee unit with a larger configured `attackRange` stops that many cells away
-      instead. Same code path for melee and ranged — only the projectile visual differs.
-    - **Ranged projectile visual** (fires only when `ranged == true`): purely a visual indicator
-      — no `Collider`/`Rigidbody`, never collides with any `GameEntity` it passes over — and
-      **actively re-tracks the target's current position every frame while in flight**, not a
-      fixed straight-line trajectory toward a snapshot position, since the target may be moving
-      and this is needed for visual clarity about which unit is shooting whom. Damage applies on
-      arrival at the target's *actual* position, not a precomputed impact point/time.
-    - **Particle System vs. MonoBehaviour — determined** (human asked the agent to decide this):
-      a plain pooled MonoBehaviour-driven projectile, not a Shuriken `ParticleSystem`. The
-      requirement is precise per-target position tracking plus an exact "arrived → apply damage"
-      trigger; reproducing that with `ParticleSystem` would mean manually driving individual
-      particles via `SetParticles`/`GetParticles` every frame anyway — no ergonomic win over a
-      MonoBehaviour, while losing straightforward `Update()`-based homing and clean
-      damage-on-arrival timing. `ParticleSystem` is still the right tool for a *separate*, later
-      concern (impact bursts, muzzle flash — see backlog item 19) — not for the projectile's own
-      flight/tracking, which is this item's actual scope.
-    - **Pooling**: since the above determination means prefab instances, pool them in their own
-      dedicated `PrefabPool&lt;T&gt;` (mirrors `BuildingFactory`/`UnitFactory`, decision #18) — not
-      reused from any other existing pool.
-    - **No unit-vs-unit collision** (explicitly confirmed acceptable): units may path through one
-      another en route to a destination; this item does not add unit-vs-unit
-      blocking/collision — consistent with decision #54's existing scope boundary (routing only
-      ever needs to go around *buildings*, GI-7/8, not other units).
-    - **Attack-range enforcement** (unchanged from before): this directly supersedes decision #37
-      ("Right-click attack is instant and range-less... no textual basis in the brief for range
-      enforcement"). That decision was correct *for the brief as written*; this is the human
-      explicitly choosing to go beyond the brief's minimum for better game feel —
-      update/append to decision #37 when this lands rather than silently overwriting it.
-    - Change one soldier (human suggests Soldier 2) to an **Archer** — ranged, uses the
-      projectile visual above.
 15. **Production Menu scroll fix** — dragging the scroll fast enough currently loses the
     top-of-list items (not the bottom ones); worked around by the human setting
     `ScrollRect.movementType` to `Clamped` directly in the scene (see ARCHITECTURE.md §4) instead
