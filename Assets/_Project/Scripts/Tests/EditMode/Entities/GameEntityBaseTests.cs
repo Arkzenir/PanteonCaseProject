@@ -91,5 +91,63 @@ namespace CaseGame.Tests.EditMode.Entities
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
         }
+
+        [Test]
+        public void SetSelected_True_TintsSpriteRenderer()
+        {
+            var (entity, spriteRenderer) = CreateEntityWithSpriteRenderer();
+            var definition = CreateDefinition(10);
+            entity.Initialize(definition);
+
+            entity.SetSelected(true);
+
+            Assert.AreNotEqual(Color.white, spriteRenderer.color);
+
+            Object.DestroyImmediate(entity.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void SetSelected_FalseAfterTrue_RestoresWhite()
+        {
+            var (entity, spriteRenderer) = CreateEntityWithSpriteRenderer();
+            var definition = CreateDefinition(10);
+            entity.Initialize(definition);
+
+            entity.SetSelected(true);
+            entity.SetSelected(false);
+
+            Assert.AreEqual(Color.white, spriteRenderer.color);
+
+            Object.DestroyImmediate(entity.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void Initialize_ResetsLeftoverSelectionTintFromPreviousUse()
+        {
+            var (entity, spriteRenderer) = CreateEntityWithSpriteRenderer();
+            var definition = CreateDefinition(10);
+            entity.Initialize(definition);
+            entity.SetSelected(true); // simulates a pooled instance released while still selected
+
+            entity.Initialize(definition); // simulates the factory reusing it for a new instance
+
+            Assert.AreEqual(Color.white, spriteRenderer.color);
+
+            Object.DestroyImmediate(entity.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        private static (TestEntity entity, SpriteRenderer spriteRenderer) CreateEntityWithSpriteRenderer()
+        {
+            var go = new GameObject("Entity");
+            var spriteRenderer = go.AddComponent<SpriteRenderer>();
+            var entity = go.AddComponent<TestEntity>();
+            var so = new SerializedObject(entity);
+            so.FindProperty("spriteRenderer").objectReferenceValue = spriteRenderer;
+            so.ApplyModifiedPropertiesWithoutUndo();
+            return (entity, spriteRenderer);
+        }
     }
 }

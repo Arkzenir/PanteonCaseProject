@@ -14,6 +14,8 @@ namespace CaseGame.Entities
     /// </summary>
     public abstract class GameEntityBase : MonoBehaviour, IDamageable
     {
+        private static readonly Color SelectedTint = new Color(1f, 1f, 0.5f);
+
         [SerializeField] private SpriteRenderer spriteRenderer;
 
         private Health _health;
@@ -34,12 +36,23 @@ namespace CaseGame.Entities
             if (spriteRenderer != null)
             {
                 spriteRenderer.sprite = definition.Sprite;
+                // Reset any leftover selection tint from a previous life of this pooled instance.
+                spriteRenderer.color = Color.white;
             }
         }
 
         public void ApplyDamage(int amount)
         {
             _health.ApplyDamage(amount);
+        }
+
+        /// <summary>Visual-only selection feedback (Selection decides *what's* selected; this just renders it) — tints the same sprite every entity already has, so no new prefab child is needed.</summary>
+        public void SetSelected(bool selected)
+        {
+            if (spriteRenderer != null)
+            {
+                spriteRenderer.color = selected ? SelectedTint : Color.white;
+            }
         }
 
         private void HandleDied()
