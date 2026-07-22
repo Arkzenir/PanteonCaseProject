@@ -7,7 +7,20 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 029 (`Grid line rendering`), 2026-07-22 — backlog item 16. `GridView`'s
+**Last report:** 030 (`Environment/terrain visuals`), 2026-07-22 — backlog item 17, scoped to
+**purely decorative** per explicit human confirmation (no changes to grid occupancy/pathfinding).
+A flat solid-color water `Tile` is painted as a `Tilemap` frame around the grid's bounds
+(margin 20 world units), leaving the grid's own interior cells unpainted so the existing camera
+background still shows through as "land" — the pack's actual grass/cliff tileset turned out to
+be an autotile "floating island" blob set that can't be safely flat-tiled or hand-assembled
+without visual verification this environment can't provide, so it was deliberately not used this
+pass. A ring of static `Rock1–4.png` decorations (not the pack's animated Bush sprites, for the
+same reason) rings the grid's edge, placed via a new pure `BorderDecorationLayout`
+(`CaseGame.Environment`). Both are static, one-time-authored scene content baked by a throwaway
+script — no new runtime MonoBehaviour. `Tileset`/`Decorations/Rocks` added to
+`SpriteAtlas_Gameplay`'s packables. 201/201 EditMode tests passing.
+
+**Report 029 (`Grid line rendering`), 2026-07-22** — backlog item 16. `GridView`'s
 Scene-view-only `OnDrawGizmos` replaced with an actual runtime-rendered grid: the whole board's
 lines are built as one combined mesh (`GridLineMeshBuilder`, one quad per line) rendered by a
 single `MeshRenderer`/`MeshFilter` — one draw call total regardless of board size, protecting
@@ -179,29 +192,18 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–029):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–030):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
-~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~.
+~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
+~~Environment/terrain visuals~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-17. **Environment/terrain visuals** — likely the largest single item in this backlog:
-    - Tilemap terrain backdrop so the ground isn't empty/skybox behind the grid. Optionally tie
-      specific tile types (forest, mountain) to *inherent* grid occupancy — i.e. some cells are
-      permanently unplaceable/unwalkable because of the terrain tile there, not just because a
-      building was placed. If pursued, this interacts directly with Report 020's unit
-      spawn-cell-occupancy work (above) — worth designing together, since both touch "what
-      counts as occupied."
-    - Auto-generated/placed border tiles around the grid's edges (e.g. forest/mountain), so the
-      board's boundary reads visually, not just via the grid lines (Report 029).
-    - Once terrain art exists, add it to `SpriteAtlas_Gameplay.spriteatlas` (Report 018) —
-      folder-level packing already covers *building/unit* art automatically; terrain art will
-      likely live in a different source folder and need its own packable entry added.
 18. **Unit animations** — idle/move/attack, ideally sequenced after item 11 (movement timing)
     and item 12 (ranged combat) land, so animation trigger points match final movement/attack
     logic rather than needing rework. The Tiny Swords pack already ships full Animator
