@@ -158,6 +158,16 @@ namespace CaseGame.Selection
 
         private void SetSelectedBuilding(BuildingBase building)
         {
+            if (_selectedBuilding != null && _selectedBuilding.IsDead)
+            {
+                // The previously-selected building died or was removed elsewhere (combat, or the
+                // Info Panel's Remove button) without going through this controller — don't let a
+                // stale reference (possibly since reused by pooling for an unrelated building)
+                // short-circuit the equality check below. Mirrors the soldier-pruning pattern in
+                // HandleRightClick (decisions log #39).
+                _selectedBuilding = null;
+            }
+
             if (_selectedBuilding == building)
             {
                 return;

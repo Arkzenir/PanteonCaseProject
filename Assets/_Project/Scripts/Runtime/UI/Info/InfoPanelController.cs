@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using CaseGame.Buildings;
+using CaseGame.Entities;
 using CaseGame.Units;
 using TMPro;
 using UnityEngine;
@@ -20,6 +21,11 @@ namespace CaseGame.UI.Info
     /// simpler and just as correct as pooling here; the brief ties Object Pooling specifically
     /// to the Production Menu's *infinite* scroll view, not this fixed-size list (see
     /// ARCHITECTURE.md decisions log).
+    ///
+    /// As of Report 020, the panel also has a "Remove Building" button — human-requested, not a
+    /// brief requirement. It calls <see cref="GameEntityBase.ApplyDamage"/> for exactly the
+    /// building's own max health, reusing the existing death pipeline (pool-release,
+    /// grid-footprint release) rather than inventing a parallel removal path.
     /// </summary>
     public class InfoPanelController : MonoBehaviour
     {
@@ -29,8 +35,10 @@ namespace CaseGame.UI.Info
         [SerializeField] private RectTransform producibleUnitsContainer;
         [SerializeField] private ProducibleUnitIconView producibleUnitIconPrefab;
         [SerializeField] private SelectedBuildingEventChannel selectedBuildingChannel;
+        [SerializeField] private Button removeBuildingButton;
 
         private readonly List<ProducibleUnitIconView> _producibleUnitIcons = new List<ProducibleUnitIconView>();
+        private BuildingBase _currentBuilding;
 
         public IReadOnlyList<ProducibleUnitIconView> ProducibleUnitIcons => _producibleUnitIcons;
 
@@ -39,6 +47,11 @@ namespace CaseGame.UI.Info
             if (selectedBuildingChannel != null)
             {
                 selectedBuildingChannel.Subscribe(SetSelectedBuilding);
+            }
+
+            if (removeBuildingButton != null)
+            {
+                removeBuildingButton.onClick.AddListener(RequestRemoveBuilding);
             }
 
             SetSelectedBuilding(null);
@@ -50,11 +63,17 @@ namespace CaseGame.UI.Info
             {
                 selectedBuildingChannel.Unsubscribe(SetSelectedBuilding);
             }
+
+            if (removeBuildingButton != null)
+            {
+                removeBuildingButton.onClick.RemoveListener(RequestRemoveBuilding);
+            }
         }
 
         /// <summary>Updates the panel for the given building, or hides it for null. Public and independent of the channel callback so it's directly testable, mirroring the rest of the project's "extract the testable decision" pattern.</summary>
         public void SetSelectedBuilding(BuildingBase building)
         {
+            _currentBuilding = building;
             panelRoot.SetActive(building != null);
             ClearProducibleUnitIcons();
 
@@ -71,6 +90,18 @@ namespace CaseGame.UI.Info
             {
                 SpawnProducibleUnitIcon(entry, spawnPosition);
             }
+        }
+
+        /// <summary>Destroys the currently-displayed building (lethal self-damage — reuses the existing death pipeline, see class doc) and immediately hides the panel rather than waiting for a round trip through Selection.</summary>
+        public void RequestRemoveBuilding()
+        {
+            if (_currentBuilding == null)
+            {
+                return;
+            }
+
+            _currentBuilding.ApplyDamage(_currentBuilding.MaxHealth);
+            SetSelectedBuilding(null);
         }
 
         private void SpawnProducibleUnitIcon(UnitCatalogEntry entry, Vector3 spawnPosition)

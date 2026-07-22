@@ -20,6 +20,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
         private Image _buildingIcon;
         private TextMeshProUGUI _buildingNameText;
         private RectTransform _producibleUnitsContainer;
+        private Button _removeBuildingButton;
         private ProducibleUnitIconView _iconPrefab;
         private Soldier _soldierPrefab;
         private InfoPanelController _controller;
@@ -35,6 +36,8 @@ namespace CaseGame.Tests.EditMode.UI.Info
             _buildingNameText.transform.SetParent(_panelRoot.transform);
             _producibleUnitsContainer = new GameObject("ProducibleUnits", typeof(RectTransform)).GetComponent<RectTransform>();
             _producibleUnitsContainer.SetParent(_panelRoot.transform);
+            _removeBuildingButton = new GameObject("RemoveBuildingButton", typeof(RectTransform)).AddComponent<Button>();
+            _removeBuildingButton.transform.SetParent(_panelRoot.transform);
 
             _soldierPrefab = new GameObject("SoldierPrefab").AddComponent<Soldier>();
             _iconPrefab = CreateIconPrefab();
@@ -46,6 +49,7 @@ namespace CaseGame.Tests.EditMode.UI.Info
             so.FindProperty("buildingNameText").objectReferenceValue = _buildingNameText;
             so.FindProperty("producibleUnitsContainer").objectReferenceValue = _producibleUnitsContainer;
             so.FindProperty("producibleUnitIconPrefab").objectReferenceValue = _iconPrefab;
+            so.FindProperty("removeBuildingButton").objectReferenceValue = _removeBuildingButton;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -133,6 +137,35 @@ namespace CaseGame.Tests.EditMode.UI.Info
 
             Assert.AreEqual(0, _controller.ProducibleUnitIcons.Count);
             Assert.AreEqual(0, _producibleUnitsContainer.childCount);
+        }
+
+        [Test]
+        public void RequestRemoveBuilding_NoBuildingSelected_DoesNotThrow()
+        {
+            Assert.DoesNotThrow(() => _controller.RequestRemoveBuilding());
+        }
+
+        [Test]
+        public void RequestRemoveBuilding_KillsTheSelectedBuilding()
+        {
+            var building = CreateBuilding("Barracks");
+            _controller.SetSelectedBuilding(building);
+
+            _controller.RequestRemoveBuilding();
+
+            Assert.IsTrue(building.IsDead);
+        }
+
+        [Test]
+        public void RequestRemoveBuilding_HidesThePanelImmediately()
+        {
+            var building = CreateBuilding("Barracks");
+            _controller.SetSelectedBuilding(building);
+
+            _controller.RequestRemoveBuilding();
+
+            Assert.IsFalse(_panelRoot.activeSelf);
+            Assert.AreEqual(0, _controller.ProducibleUnitIcons.Count);
         }
 
         private string GetIconName(int index)

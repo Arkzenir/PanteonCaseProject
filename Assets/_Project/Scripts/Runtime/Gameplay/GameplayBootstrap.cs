@@ -34,7 +34,7 @@ namespace CaseGame.Gameplay
 
             placementController.Initialize(grid, buildingFactory);
             selectionController.Initialize(grid);
-            unitProductionController.Initialize(unitFactory);
+            unitProductionController.Initialize(unitFactory, grid);
         }
     }
 }

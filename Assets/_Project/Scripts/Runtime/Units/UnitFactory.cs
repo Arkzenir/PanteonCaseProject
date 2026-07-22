@@ -14,6 +14,7 @@ namespace CaseGame.Units
         private readonly Dictionary<SoldierBase, PrefabPool<SoldierBase>> _pools =
             new Dictionary<SoldierBase, PrefabPool<SoldierBase>>();
 
+        private readonly HashSet<SoldierBase> _activeUnits = new HashSet<SoldierBase>();
         private readonly Transform _parent;
 
         public UnitFactory(Transform parent = null)
@@ -21,11 +22,19 @@ namespace CaseGame.Units
             _parent = parent;
         }
 
+        /// <summary>Every currently-alive, factory-created unit — used by production's spawn-cell occupancy check (a unit shouldn't spawn on top of another one). Live, not a snapshot.</summary>
+        public IReadOnlyCollection<SoldierBase> ActiveUnits => _activeUnits;
+
         public SoldierBase Create(UnitDefinition definition, SoldierBase prefab)
         {
             var pool = GetOrCreatePool(prefab);
             var instance = pool.Get();
-            instance.Initialize(definition, () => pool.Release(instance));
+            instance.Initialize(definition, () =>
+            {
+                _activeUnits.Remove(instance);
+                pool.Release(instance);
+            });
+            _activeUnits.Add(instance);
             return instance;
         }
 

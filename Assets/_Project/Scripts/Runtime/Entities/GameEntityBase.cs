@@ -58,6 +58,12 @@ namespace CaseGame.Entities
         private void HandleDied()
         {
             _onDied?.Invoke();
+            OnEntityDied();
+        }
+
+        /// <summary>Extension point for a subclass's own death-time cleanup beyond the pooling callback (e.g. <see cref="CaseGame.Buildings.BuildingBase"/> releasing its grid footprint) — a plain virtual hook rather than an event, since it always targets exactly this instance's current state with no subscription-lifetime/pooled-reuse hazards to manage.</summary>
+        protected virtual void OnEntityDied()
+        {
         }
     }
 }

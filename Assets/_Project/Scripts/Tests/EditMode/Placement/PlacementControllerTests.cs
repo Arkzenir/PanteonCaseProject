@@ -126,8 +126,44 @@ namespace CaseGame.Tests.EditMode.Placement
             var committed = _controller.TryCommitAt(new Vector2Int(2, 2));
 
             Assert.IsTrue(committed);
-            Assert.IsFalse(_grid.IsAreaFree(new Vector2Int(2, 2), new Vector2Int(2, 2)));
+            // Hover cell (2,2) is the footprint's *center*; a 2x2 footprint centers there as
+            // origin (1,1), covering (1,1)-(2,2) — not (2,2)-(3,3).
+            Assert.IsFalse(_grid.IsAreaFree(new Vector2Int(1, 1), new Vector2Int(2, 2)));
             Assert.IsFalse(_controller.IsPlacing);
+        }
+
+        [Test]
+        public void UpdateGhostAt_PositionsInstanceAtTrueFootprintCenter()
+        {
+            _controller.BeginPlacement(_definition, _prefab);
+
+            _controller.UpdateGhostAt(new Vector2Int(5, 5));
+
+            // hover (5,5), 2x2 footprint -> origin (4,4) -> true center (5,5).
+            Assert.AreEqual(new Vector3(5f, 5f, 0f), _controller.CurrentGhost.transform.position);
+        }
+
+        [Test]
+        public void TryCommitAt_PositionsInstanceAtTrueFootprintCenter()
+        {
+            _controller.BeginPlacement(_definition, _prefab);
+            var committedInstance = _controller.CurrentGhost;
+
+            _controller.TryCommitAt(new Vector2Int(2, 2));
+
+            // hover (2,2), 2x2 footprint -> origin (1,1) -> true center (2,2).
+            Assert.AreEqual(new Vector3(2f, 2f, 0f), committedInstance.transform.position);
+        }
+
+        [Test]
+        public void TryCommitAt_RecordsFootprintOriginOnTheInstance()
+        {
+            _controller.BeginPlacement(_definition, _prefab);
+            var committedInstance = _controller.CurrentGhost;
+
+            _controller.TryCommitAt(new Vector2Int(2, 2));
+
+            Assert.AreEqual(new Vector2Int(1, 1), committedInstance.FootprintOrigin);
         }
 
         [Test]

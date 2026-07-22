@@ -45,6 +45,12 @@ namespace CaseGame.Grid
             return CellToWorld(cell) + new Vector2(CellSize, CellSize) * 0.5f;
         }
 
+        /// <summary>World position of the geometric center of a whole footprint rectangle (origin = its bottom-left cell) — correct regardless of whether the footprint's width/height is odd or even, unlike picking a single "center cell" (which doesn't exist for an even-sized footprint).</summary>
+        public Vector2 FootprintCenterToWorld(Vector2Int origin, Vector2Int footprint)
+        {
+            return CellToWorld(origin) + new Vector2(footprint.x, footprint.y) * CellSize * 0.5f;
+        }
+
         /// <summary>Out-of-bounds cells report as occupied, since they are never legal to place/path through.</summary>
         public bool IsOccupied(Vector2Int cell)
         {

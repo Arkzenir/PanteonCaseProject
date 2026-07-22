@@ -7,100 +7,59 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 019 (`Camera controls`), 2026-07-22. Compile clean,
-**134/134 EditMode tests passing** (127 prior + 7 new).
+**Last report:** 020 (`Placement/Grid architecture fixes`), 2026-07-22. Compile clean,
+**153/153 EditMode tests passing** (134 prior + 19 new).
 
-**Human hand-tested Report 017 since it landed: "purely mechanically, the system works."**
-Adjustments were made directly in-Editor (not captured as a report — no code/doc changes came
-back from that pass). Visual polish is now underway in parallel (real art — the "Tiny Swords"
-pack — has replaced placeholder sprites; see ARCHITECTURE.md §4).
+**Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
+Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
+mechanically, the system works"; visual polish (the "Tiny Swords" art pack) started in parallel
+and is ongoing. Report 018 built the draw-call/batching *architecture* only (Sprite Atlas, GPU
+Instancing on the project's own material) — numeric verification is deliberately deferred until
+polish is further along (decisions log #49). Report 019 added `CameraControl` (pan/zoom).
+None of 018–020 have been hand-tested in Play Mode yet.
 
-**Report 018 scope, and why it's split:** the human asked when to do the draw-call/batching
-pass — before or after visual polish — and the agreed answer was to split it: batching
-*architecture* now (this report), numeric *verification* (actually counting draw calls against
-the &lt;20 budget) later, once visual polish is further along (decisions log #49). This report is
-architecture only:
-- Confirmed URP's SRP Batcher was already on (project-default, no action needed).
-- Confirmed every building/unit prefab's `Visuals` renderer already shares one material — the
-  other precondition for batching was already correct.
-- The real gap: no `SpriteAtlas` existed, so same-material sprites from *different* building/
-  unit types still cost separate draw calls (Unity's sprite batching needs matching texture,
-  not just material). Added `SpriteAtlas_Gameplay.spriteatlas` covering the actual art folders.
-- Enabled GPU Instancing on the project's own `M_SpriteGrayscaleGhost` material (was off) — the
-  brief names GPU Instancing as its own required pattern separate from batching.
-- No C# touched. Verified by reading the generated `.spriteatlas`/`.mat` files back.
+**Report 020 (this one) — first item off the post-hand-test backlog, "Placement/Grid
+architecture fixes."** Three related fixes:
+- **Center-anchored footprint placement** — the hovered cell is now the footprint's center, not
+  its bottom-left corner (was visibly misaligning centered building art from its footprint).
+- **"Remove Building"** on the Info Panel — implemented as `ApplyDamage(MaxHealth)`, reusing the
+  existing death pipeline. This surfaced and fixed a real pre-existing bug: combat-destroyed
+  buildings never released their grid cells either (nothing connected "died" to "unoccupy") —
+  fixed once, for both paths, via a new `GameEntityBase.OnEntityDied()` hook.
+- **Unit spawn-cell occupancy** — units spawn snapped to the nearest cell to their Barracks'
+  spawn point, blocked if that cell has a building or another unit on it (a live `UnitFactory`
+  scan, not a persisted occupancy grid — scoped to spawn-time only, not unit pathfinding).
 
-**The project is feature-complete and assembled; mechanically hand-tested once (Report 017) but
-not yet re-verified after visual polish began.** Report 017's audit checklist
-(`Docs/Reports/017_gameplay-scene-assembly.md`) is still the reference for what to click
-through if anything seems off after further polish.
-
-**What Report 017 found and fixed (read the report before assuming the obvious wiring pass is
-all this feature did):**
-- **Units were never producible** — the Production Menu only lists buildings, and Report 016
-  had built the Info Panel's producible-unit icons non-interactive. Re-reading requirements 5/6
-  together made clear the Info Panel's producible-unit row *is* GI-6's "production sub-menu" —
-  fixed: those icons are now clickable and actually spawn a soldier (`UnitCatalogEntry`,
-  `UnitProductionController`, new `CaseGame.Units` types — see decisions log #41–44).
-- **Two data bugs in existing assets**, found by reading the raw YAML, not assumed correct:
-  `BuildingDef_Barracks`/`BuildingDef_PowerPlant` had an empty `entityName` (stale pre-Report-010
-  field name), and `UnitDef_Soldier3` had 1 HP/1 damage instead of the brief's mandated 10/2.
-  Both fixed (decisions log #46).
-- **UI-vs-world input conflict** — `PlacementController`/`SelectionController` read raw mouse
-  input with no UI awareness; clicking a Production Menu row would *also* fire a world-space
-  action underneath it. Fixed with `EventSystem.current.IsPointerOverGameObject()` guards
-  (decisions log #47).
-- Camera repositioned/resized to frame the grid, computed from `GridDef_Default.asset` and the
-  UI panels' known width — **not visually verified**, flagged in the audit checklist (#48).
+See ARCHITECTURE.md decisions log #52–54 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
-Core (`GameManager`), Grid, Entities (`GameEntityDefinition`/`GameEntityBase` + `SetSelected`),
-Combat, Buildings (`BuildingCatalog`/`BuildingCatalogEntry`/`BuildingCatalogEntryEventChannel`/
-`SelectedBuildingEventChannel`, `BuildingBase.SpawnPosition` virtual), Units (`SoldierBase`/
-`Soldier`/`UnitFactory`/`UnitCatalogEntry`/`UnitProductionController` — 3 soldier *types* are
-`UnitDefinition` data, not 3 classes, see decisions log #26), Placement (`BuildingGhostView`/
-`PlacementController`), UI.Production (`ScrollRecycler`/`ProductionMenuItemView`/
-`ProductionMenuController`), Selection (`SelectionController`), UI.Info (`InfoPanelController`/
-`ProducibleUnitIconView`, now clickable), **Gameplay** (new module, `GameplayBootstrap` — the
-scene's composition root), **CameraControl** (new module, `CameraController` — pan/zoom, Report
-019), Events, Pooling, Pathfinding.
+Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
+(`GameEntityDefinition`/`GameEntityBase` + `SetSelected`/`OnEntityDied`), Combat, Buildings
+(`BuildingCatalog`/`BuildingCatalogEntry`/`BuildingCatalogEntryEventChannel`/
+`SelectedBuildingEventChannel`, `BuildingBase.SpawnPosition`/`SetPlacement`), Units
+(`SoldierBase`/`Soldier`/`UnitFactory` + `ActiveUnits`/`UnitCatalogEntry`/
+`UnitProductionController` — 3 soldier *types* are `UnitDefinition` data, not 3 classes,
+decisions log #26), Placement (`BuildingGhostView`/`PlacementController`), UI.Production
+(`ScrollRecycler`/`ProductionMenuItemView`/`ProductionMenuController`), Selection
+(`SelectionController`), UI.Info (`InfoPanelController`/`ProducibleUnitIconView` — Remove
+Building button), **Gameplay** (`GameplayBootstrap`), **CameraControl** (`CameraController`),
+Events, Pooling, Pathfinding.
 
-**Not yet built:** the rest of the polish/mechanical-adjustment backlog below (items 9 onward —
-catalogued 2026-07-22 from the human's post-hand-test notes), draw-call/batching *numeric
-verification* (architecture is done), Windows build export, `/final-report`.
+**Not yet built:** the rest of the polish/mechanical-adjustment backlog below (items 10
+onward), draw-call/batching *numeric verification* (architecture is done), Windows build
+export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–019):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
-~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~.
+*Done (Reports 012–020):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
+~~Placement/Grid architecture fixes~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-9. **Placement/Grid architecture fixes** — do before the two items below, since both build on
-   its corrected footprint math:
-   - Building footprint origin: currently bottom-left-anchored (`GridModel.CellToWorld`/
-     `SetAreaOccupied`'s existing corner-based math, decision #5); needs to become
-     **center-anchored** — the building's placement "origin" cell should be the *center* of its
-     footprint, matching how the (now real, Tiny-Swords-sourced) visual art is centered on the
-     GameObject's own origin. Touches `GridModel`, `BuildingDefinition.Footprint` semantics,
-     `PlacementController`'s cell math.
-   - **"Remove Building" button** on the Information Panel — a demolish action (the inverse of
-     Placement/Production): needs to release the building's occupied footprint cells (today
-     only death/`ApplyDamage`-to-0 does anything like this, and that doesn't unoccupy the grid
-     either — check `BuildingBase`/`Health`'s death path when implementing this, it may have the
-     same gap).
-   - **Unit spawn cell occupancy**: units should spawn on the grid cell closest to/overlapping
-     the Barracks' `SpawnPoint` (not the prefab's raw world position), and spawning should be
-     **blocked** if that cell is already occupied — by a building *or* another unit. This is a
-     real model extension: `GridModel`'s occupancy grid currently only tracks buildings
-     (`SetAreaOccupied`, called only by `PlacementController`) — units moving around never
-     register/clear occupancy today. Needs design thought at implementation time: do units
-     occupy a cell only while stationary, or always (blocking pathing through them too)? The
-     brief only requires "routes around buildings" (GI-7/8), not units — don't over-scope this
-     into full unit-collision/pathfinding-around-units unless asked.
 10. **Selection polish**:
     - Selection outline visual for units — a real outline (shader/sprite-mask/child renderer),
       likely alongside or replacing `GameEntityBase.SetSelected`'s current color-tint approach
@@ -169,8 +128,9 @@ order below is dependency-aware, not a hard requirement — pick freely.
     - Tilemap terrain backdrop so the ground isn't empty/skybox behind the grid. Optionally tie
       specific tile types (forest, mountain) to *inherent* grid occupancy — i.e. some cells are
       permanently unplaceable/unwalkable because of the terrain tile there, not just because a
-      building was placed. If pursued, this interacts directly with item 9's `GridModel`
-      occupancy-extension work above — worth sequencing after it, or designing both together.
+      building was placed. If pursued, this interacts directly with Report 020's unit
+      spawn-cell-occupancy work (above) — worth designing together, since both touch "what
+      counts as occupied."
     - Auto-generated/placed border tiles around the grid's edges (e.g. forest/mountain), so the
       board's boundary reads visually, not just via the grid lines (item 16, above).
     - Once terrain art exists, add it to `SpriteAtlas_Gameplay.spriteatlas` (Report 018) —

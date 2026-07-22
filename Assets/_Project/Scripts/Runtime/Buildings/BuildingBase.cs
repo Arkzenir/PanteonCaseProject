@@ -1,4 +1,5 @@
 using CaseGame.Entities;
+using CaseGame.Grid;
 using UnityEngine;
 
 namespace CaseGame.Buildings
@@ -15,5 +16,30 @@ namespace CaseGame.Buildings
 
         /// <summary>Where this building's produced units appear (GI-7). Defaults to the building's own position; <see cref="Barracks"/> overrides it with a dedicated spawn point. Virtual so callers (e.g. Info Panel unit production) never need to type-check for "is this a Barracks" — any building capable of producing units can be asked this generically (requirement 2's modularity mandate).</summary>
         public virtual Vector3 SpawnPosition => transform.position;
+
+        private GridModel _grid;
+        private Vector2Int _footprintOrigin;
+        private bool _isPlacedOnGrid;
+
+        /// <summary>The grid cells this building currently occupies (bottom-left of its footprint), or null if it isn't placed on a grid right now. Set by <see cref="Placement.PlacementController"/> once a placement is actually committed — not at ghost-creation time.</summary>
+        public Vector2Int? FootprintOrigin => _isPlacedOnGrid ? _footprintOrigin : (Vector2Int?)null;
+
+        /// <summary>Records where this building sits on the grid, so it can release those cells itself when destroyed — by combat (<see cref="GameEntityBase.ApplyDamage"/> reaching 0) or by manual removal (also just <c>ApplyDamage</c>, see decisions log).</summary>
+        public void SetPlacement(GridModel grid, Vector2Int footprintOrigin)
+        {
+            _grid = grid;
+            _footprintOrigin = footprintOrigin;
+            _isPlacedOnGrid = true;
+        }
+
+        /// <summary>Releases this building's occupied footprint back to the grid — combat death and manual removal both funnel through here via <see cref="OnEntityDied"/>, so neither path can forget to unoccupy the cells (a real, pre-existing gap this closes).</summary>
+        protected override void OnEntityDied()
+        {
+            if (_isPlacedOnGrid && _grid != null)
+            {
+                _grid.SetAreaOccupied(_footprintOrigin, Definition.Footprint, false);
+                _isPlacedOnGrid = false;
+            }
+        }
     }
 }

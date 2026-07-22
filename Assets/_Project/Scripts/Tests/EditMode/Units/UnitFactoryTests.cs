@@ -73,5 +73,38 @@ namespace CaseGame.Tests.EditMode.Units
             Object.DestroyImmediate(instanceB.gameObject);
             Object.DestroyImmediate(definition);
         }
+
+        [Test]
+        public void Create_AddsInstanceToActiveUnits()
+        {
+            var prefab = new GameObject("Prefab").AddComponent<Soldier>();
+            var definition = CreateDefinition(10);
+            var factory = new UnitFactory();
+
+            var instance = factory.Create(definition, prefab);
+
+            CollectionAssert.Contains(factory.ActiveUnits, instance);
+
+            Object.DestroyImmediate(prefab.gameObject);
+            Object.DestroyImmediate(instance.gameObject);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void ApplyDamage_KillingInstance_RemovesItFromActiveUnits()
+        {
+            var prefab = new GameObject("Prefab").AddComponent<Soldier>();
+            var definition = CreateDefinition(10);
+            var factory = new UnitFactory();
+            var instance = factory.Create(definition, prefab);
+
+            instance.ApplyDamage(10);
+
+            CollectionAssert.DoesNotContain(factory.ActiveUnits, instance);
+
+            Object.DestroyImmediate(prefab.gameObject);
+            Object.DestroyImmediate(instance.gameObject);
+            Object.DestroyImmediate(definition);
+        }
     }
 }

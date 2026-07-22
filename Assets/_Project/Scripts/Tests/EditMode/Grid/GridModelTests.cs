@@ -95,5 +95,38 @@ namespace CaseGame.Tests.EditMode.Grid
 
             Assert.IsTrue(model.IsAreaFree(new Vector2Int(0, 0), new Vector2Int(4, 4)));
         }
+
+        [Test]
+        public void FootprintCenterToWorld_EvenFootprint_ReturnsTrueGeometricCenter()
+        {
+            var model = new GridModel(CreateDefinition(1f, 10, 10, Vector2.zero));
+
+            // A 4x4 footprint at origin (0,0) spans world [0,4]x[0,4]; true center is (2,2).
+            var center = model.FootprintCenterToWorld(Vector2Int.zero, new Vector2Int(4, 4));
+
+            Assert.AreEqual(new Vector2(2f, 2f), center);
+        }
+
+        [Test]
+        public void FootprintCenterToWorld_OddFootprint_ReturnsTrueGeometricCenter()
+        {
+            var model = new GridModel(CreateDefinition(1f, 10, 10, Vector2.zero));
+
+            // A 3x1 footprint at origin (0,0) spans world [0,3]x[0,1]; true center is (1.5, 0.5).
+            var center = model.FootprintCenterToWorld(Vector2Int.zero, new Vector2Int(3, 1));
+
+            Assert.AreEqual(new Vector2(1.5f, 0.5f), center);
+        }
+
+        [Test]
+        public void FootprintCenterToWorld_RespectsOriginAndCellSize()
+        {
+            var model = new GridModel(CreateDefinition(2f, 10, 10, new Vector2(1f, 1f)));
+
+            var center = model.FootprintCenterToWorld(new Vector2Int(1, 1), new Vector2Int(2, 2));
+
+            // CellToWorld(1,1) = (1,1) + (2,2) = (3,3); + half of (2*2, 2*2)=(4,4) => +(2,2) => (5,5)
+            Assert.AreEqual(new Vector2(5f, 5f), center);
+        }
     }
 }

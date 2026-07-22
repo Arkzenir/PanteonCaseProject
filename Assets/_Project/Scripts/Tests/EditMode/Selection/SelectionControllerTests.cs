@@ -240,6 +240,27 @@ namespace CaseGame.Tests.EditMode.Selection
         }
 
         [Test]
+        public void HandleLeftClick_PreviouslySelectedBuildingDiedElsewhere_ReselectingSameInstanceStillRaisesEvent()
+        {
+            var building = CreateBuilding();
+            _controller.HandleLeftClick(building, additive: false);
+            building.ApplyDamage(building.MaxHealth); // killed/removed without going through Selection
+
+            BuildingBase received = null;
+            var raiseCount = 0;
+            _channel.Subscribe(b => { received = b; raiseCount++; });
+
+            // Same (pooled-reuse-style) instance reference selected again — must not be treated
+            // as "already selected" just because it's the same reference as the stale one.
+            _controller.HandleLeftClick(building, additive: false);
+
+            Assert.AreEqual(1, raiseCount);
+            Assert.AreSame(building, received);
+
+            DestroyBuilding(building);
+        }
+
+        [Test]
         public void ClearSelection_DeselectsSoldiersAndBuildingAndRaisesNull()
         {
             var building = CreateBuilding();

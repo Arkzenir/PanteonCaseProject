@@ -13,6 +13,12 @@ namespace CaseGame.Placement
     /// (GI-3) — and commits (marks grid cells occupied, reveals the real sprite) or cancels
     /// (returns the pooled instance) on input.
     ///
+    /// The <c>cell</c> passed to <see cref="UpdateGhostAt"/>/<see cref="TryCommitAt"/> is the
+    /// cell under the cursor, treated as the *center* of the footprint, not its bottom-left
+    /// corner — the building's visual art is centered on its own GameObject origin, so
+    /// positioning by corner instead of center would visibly misalign the sprite from the cells
+    /// it actually occupies (see ARCHITECTURE.md decisions log).
+    ///
     /// The actual decision logic (<see cref="BeginPlacement"/>/<see cref="UpdateGhostAt"/>/
     /// <see cref="TryCommitAt"/>/<see cref="CancelPlacement"/>) takes an explicit cell and is
     /// callable directly, independent of <see cref="Update"/>'s mouse reading — humble
@@ -95,8 +101,9 @@ namespace CaseGame.Placement
                 return;
             }
 
-            _ghostInstance.transform.position = _grid.CellToWorld(cell);
-            _ghostView.SetValid(IsCellValid(cell));
+            var origin = ComputeFootprintOrigin(cell);
+            _ghostInstance.transform.position = _grid.FootprintCenterToWorld(origin, _currentDefinition.Footprint);
+            _ghostView.SetValid(_grid.IsAreaFree(origin, _currentDefinition.Footprint));
         }
 
         /// <summary>Attempts to commit the building at the given cell. Returns false (no-op) if the area isn't free.</summary>
@@ -107,8 +114,10 @@ namespace CaseGame.Placement
                 return false;
             }
 
-            _grid.SetAreaOccupied(cell, _currentDefinition.Footprint, true);
-            _ghostInstance.transform.position = _grid.CellToWorld(cell);
+            var origin = ComputeFootprintOrigin(cell);
+            _grid.SetAreaOccupied(origin, _currentDefinition.Footprint, true);
+            _ghostInstance.transform.position = _grid.FootprintCenterToWorld(origin, _currentDefinition.Footprint);
+            _ghostInstance.SetPlacement(_grid, origin);
             _ghostView.Commit();
 
             _ghostInstance = null;
@@ -118,7 +127,15 @@ namespace CaseGame.Placement
 
         private bool IsCellValid(Vector2Int cell)
         {
-            return _grid.IsAreaFree(cell, _currentDefinition.Footprint);
+            var origin = ComputeFootprintOrigin(cell);
+            return _grid.IsAreaFree(origin, _currentDefinition.Footprint);
+        }
+
+        /// <summary>Converts the cursor's cell (footprint center) to the footprint's bottom-left cell (the shape <see cref="GridModel.IsAreaFree"/>/<see cref="GridModel.SetAreaOccupied"/> already expect). Integer division biases even-sized footprints slightly toward the origin corner — standard, expected behavior for centering an even-sized selection on a single cell.</summary>
+        private Vector2Int ComputeFootprintOrigin(Vector2Int hoverCell)
+        {
+            var footprint = _currentDefinition.Footprint;
+            return hoverCell - new Vector2Int(footprint.x / 2, footprint.y / 2);
         }
 
         private void Update()
