@@ -83,7 +83,11 @@ updates, publishing/subscribing via Events rather than reaching into each other 
   - `--- UI ---`: `Canvas` (`ScaleWithScreenSize`, 1920×1080 reference), `EventSystem`
     (`InputSystemUIInputModule`), `ProductionMenu` (`ProductionMenuController`, left-anchored,
     wired to `BuildingCatalog_Default.asset`), `InformationPanel` (`InfoPanelController`,
-    right-anchored, starts inactive, wired to `SelectedBuildingEvent_Default.asset`).
+    right-anchored, starts inactive, wired to `SelectedBuildingEvent_Default.asset`). Human hand-
+    adjustment after hand-testing Report 017: `ProductionMenu`'s `ScrollRect.movementType` is now
+    `Clamped` (was the Unity default `Elastic`) — worked around a bug where dragging the scroll
+    fast enough loses the top-of-list items (not the bottom ones); see the roadmap in
+    `CURRENT_STATUS.md` for the planned real fix.
 - Key prefabs, all under `Assets/_Project/Prefabs/`:
   `Buildings/Building_Barracks.prefab` + `Building_PowerPlant.prefab` (human-created after
   Report 009, `Hitbox` collider added per Report 015's hookup) — a parent GameObject with
