@@ -92,6 +92,15 @@ namespace CaseGame.UI.Info
             {
                 SpawnProducibleUnitIcon(entry, spawnPosition);
             }
+
+            // The producible-units grid's height (GridLayoutGroup + ContentSizeFitter) and the
+            // panel's stacked positions (PanelContent's VerticalLayoutGroup, Report 025) both
+            // depend on the icons just spawned above — Unity's normal layout pass is deferred to
+            // later in the frame, so without forcing it here the panel renders one stale frame
+            // (still reflecting whatever building was selected *before* this one) before catching
+            // up on the next rebuild trigger. Forcing it immediately keeps every selection change
+            // correct on the very first frame it's shown.
+            LayoutRebuilder.ForceRebuildLayoutImmediate((RectTransform)panelRoot.transform);
         }
 
         /// <summary>Raises a removal request for the currently-displayed building (see class doc — a separate trigger from Health) and immediately hides the panel rather than waiting for a round trip through Selection.</summary>
@@ -132,17 +141,14 @@ namespace CaseGame.UI.Info
 
         private static void DestroyView(GameObject go)
         {
-            // Destroy() is deferred to end-of-frame and is invalid outside Play Mode (same
-            // reasoning as GameManager.DestroyDuplicate) — Edit Mode/EditMode tests need the
-            // immediate variant so a cleared icon is actually gone before the next assertion.
-            if (Application.isPlaying)
-            {
-                Destroy(go);
-            }
-            else
-            {
-                DestroyImmediate(go);
-            }
+            // DestroyImmediate in both modes — not just Edit Mode/tests. The deferred Destroy()
+            // leaves a cleared icon as a real child of producibleUnitsContainer until end of
+            // frame, which SetSelectedBuilding's forced layout rebuild (above) would otherwise
+            // still measure — the exact reason switching straight from a building with more
+            // producible units to one with fewer (e.g. Barracks to Power Plant) left the panel's
+            // stack momentarily too tall. Safe here: this only ever runs over our own local
+            // _producibleUnitIcons list, never mid-iteration over Unity's own Transform children.
+            DestroyImmediate(go);
         }
     }
 }

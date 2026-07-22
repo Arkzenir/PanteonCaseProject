@@ -7,8 +7,12 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 023 (`Movement timing fix`), 2026-07-22. Compile clean,
-**167/167 EditMode tests passing** (161 prior + 6 new).
+**Last report:** 025 (`Info Panel stack reflow`), 2026-07-22 — same-day polish-and-bugfix pass
+following Report 024 (three parts: the stack layout itself, a width bug the human caught and
+fixed by hand, and a layout-timing bug fixed in `InfoPanelController`). Human hand-verified in
+the Editor throughout; no batch test run requested for this pass (167/167 stood as of Report
+024 — the one runtime code change, `SetSelectedBuilding`/`DestroyView`, isn't covered by
+EditMode tests either way, being a Play-Mode-only layout-timing concern).
 
 **Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
 Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
@@ -56,7 +60,35 @@ irrelevant). **Note:** since the grid's actual `cellSize` is 0.5, existing
 `UnitDefinition.moveSpeed` values (3/5/3) now mean a real ~2× slower felt speed than before —
 data-only, hand-tune in the Inspector if it feels off.
 
-See ARCHITECTURE.md decisions log #52–57 for the full reasoning on each.
+**Report 024 (this one) — item 13 off the backlog, "Info Panel producible-units layout fix."**
+`ProducibleUnitsContainer`'s non-wrapping `HorizontalLayoutGroup` (overflowed sideways past 3
+entries) replaced with a built-in `GridLayoutGroup` (Fixed Column Count, default 3) + a
+`ContentSizeFitter` (auto-height) on `InformationPanel.prefab` — pure editor/prefab wiring, zero
+code change, since neither `InfoPanelController` nor `ProducibleUnitIconView` cares how their
+container arranges children. Grid shape/size (cell size, spacing, column count) is fully
+adjustable directly in `GridLayoutGroup`'s own Inspector, as requested. Done via a throwaway
+setup script (component swap), verified by reading the regenerated prefab back, then deleted.
+
+**Report 025 (this one) — same-day polish-and-bugfix pass following Report 024.**
+`PanelContent` (in `InformationPanel.prefab`) gained a `VerticalLayoutGroup` so `BuildingIcon`/
+`BuildingName`/`ProducibleUnitsContainer`/`RemoveButton` stack top-to-bottom instead of each
+being independently anchored — `RemoveButton` now correctly gets pushed down/up as the
+producible-units grid's own content-driven height changes, instead of risking an overlap once
+the grid grows past 1 row. Two bugs the human caught while testing, both fixed same-day:
+- **Width bug** (human fixed by hand): the initial version left `Force Expand Width` on, which
+  stretched *every* child — including `BuildingIcon`/`RemoveButton` — to the full panel width
+  regardless of their `LayoutElement.preferredWidth`. Fixed by turning it off and giving
+  `BuildingName`/`ProducibleUnitsContainer` an explicit `flexibleWidth = 1` instead, so only
+  those two stretch.
+- **Layout-timing bug** (fixed in code): selecting a building showed the *previous* selection's
+  stale layout for one frame — worse, switching from more producible units to fewer (Barracks →
+  Power Plant) never corrected without deselecting first. Fixed in
+  `InfoPanelController.SetSelectedBuilding`: forces `LayoutRebuilder.ForceRebuildLayoutImmediate`
+  after spawning icons, and `DestroyView` now always uses `DestroyImmediate` (Play Mode's
+  deferred `Destroy()` was leaving old icons counted by the grid on the very frame being force-
+  rebuilt).
+
+See ARCHITECTURE.md decisions log #52–60 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -77,10 +109,10 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–023):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–025):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
-~~Movement timing fix~~.
+~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
@@ -100,10 +132,6 @@ order below is dependency-aware, not a hard requirement — pick freely.
       brief for range enforcement"). That decision was correct *for the brief as written*; this
       is the human explicitly choosing to go beyond the brief's minimum for better game feel —
       update/append to decision #37 when this lands rather than silently overwriting it.
-13. **Info Panel producible-units layout fix** — the producible-unit icon row currently uses a
-    `HorizontalLayoutGroup` (Report 016/017) and overflows sideways past 3 entries; switch to a
-    vertical/downward-tiling layout that fits the panel. Small, standalone UI fix
-    (`InfoPanelController`'s `producibleUnitsContainer` + the prefab-side layout component).
 14. **UI visual polish**:
     - Banner header at the top of the Production Menu and Information Panel (per the human's
       reference mockup) — **not** on the Game Board.
