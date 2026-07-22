@@ -191,6 +191,37 @@ namespace CaseGame.Tests.EditMode.Units
         }
 
         [Test]
+        public void Attack_ThenMoveTo_CancelsAttackAndDoesNotThrow()
+        {
+            // Regression coverage for the reported bug's API-level shape: issuing a move order
+            // while an attack is in progress must cancel cleanly. The animator-driven half of the
+            // fix (forcing an in-progress ranged attack animation back to Idle so its deferred
+            // projectile never fires) only runs when an Animator is wired, which — per this
+            // project's established EditMode-testing limits (ENVIRONMENT.md) — isn't exercised
+            // here; this just guards the always-active code path stays throw-free.
+            var go = new GameObject("Soldier");
+            var soldier = go.AddComponent<Soldier>();
+            var definition = CreateDefinition(10, 5);
+            soldier.Initialize(definition);
+            var grid = CreateGrid(5, 5);
+            soldier.transform.position = grid.CellCenterToWorld(new Vector2Int(2, 2));
+
+            var targetGo = new GameObject("Target");
+            var target = targetGo.AddComponent<Soldier>();
+            var targetDefinition = CreateDefinition(10, 5);
+            target.Initialize(targetDefinition);
+            target.transform.position = grid.CellCenterToWorld(new Vector2Int(4, 4));
+
+            soldier.Attack(target, grid, null);
+            Assert.DoesNotThrow(() => soldier.MoveTo(new Vector2Int(0, 0), grid));
+
+            Object.DestroyImmediate(go);
+            Object.DestroyImmediate(definition);
+            Object.DestroyImmediate(targetGo);
+            Object.DestroyImmediate(targetDefinition);
+        }
+
+        [Test]
         public void MoveTo_SameCellAsCurrentPosition_DoesNotThrow()
         {
             var go = new GameObject("Soldier");

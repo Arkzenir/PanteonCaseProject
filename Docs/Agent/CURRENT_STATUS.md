@@ -7,7 +7,41 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 035 (`Selection/placement race fix, corrected`), 2026-07-23 — the human found
+**Since Report 037 (no report filed, human-directed):** Fixed a real bug — a soldier could be
+handed itself as an attack target (right-clicking a cell occupied by one of the currently-selected
+soldiers) and would tick damage into itself indefinitely, since the project has no faction/team
+system to otherwise rule that out. `SelectionController.HandleRightClick` now skips (no attack, no
+move) any selected soldier whose own `hitTarget` is itself; other selected soldiers in the same
+click are unaffected. Human is hand-testing directly, no dedicated tests added this pass. See
+ARCHITECTURE.md decisions log #74.
+
+**Last report:** 037 (`Selection outline animation sync`), 2026-07-23 — human-reported: the
+selection outline stayed frozen on its spawn-time sprite while animated soldiers' real sprite
+changed every frame, producing a visible pose mismatch when a selected unit moved/attacked.
+`GameEntityBase` gained a `LateUpdate` syncing `outlineRenderer.sprite = spriteRenderer.sprite`
+whenever the outline is enabled — no duplicate Animator on the outline needed, and (confirmed with
+the human before implementing) no draw-call impact: the outline was already its own draw call via
+its dedicated material, this only changes which sprite/frame that existing draw call shows. Not
+batchmode-verified this turn (Unity Editor open). See ARCHITECTURE.md decisions log #73.
+
+**Report 036 (`Archer attack-cancel fix`), 2026-07-23** — human-reported: moving the
+Archer while its attack animation was playing let the animation finish and fire the projectile
+anyway, since cancelling the C# action coroutine never touched the independently-running Animator
+state machine. `SoldierBase.CancelAction` now (a) always clears the pending ranged-release target
+so a late `ReleaseAttack()` no-ops, and (b) if a release was genuinely pending, forces the Animator
+straight back to Idle via a `Start()`-captured Idle state hash (`animator.Play(_idleStateHash, 0,
+0f)`) instead of letting the attack animation play out. No controller/asset edits needed. Not
+batchmode-verified this turn (Unity Editor was open) — human is hand-testing directly. See
+ARCHITECTURE.md decisions log #72.
+
+**Since Report 035 (no report filed, human-directed):** `GridView`/`IslandTerrainView`'s
+`OnValidate` no longer rebuild synchronously — deferred one editor tick via
+`EditorApplication.delayCall`, eliminating the "SendMessage cannot be called during Awake,
+CheckConsistency, or OnValidate" console warnings both were producing (cosmetic only; the
+tile/mesh writes always succeeded). Human confirmed no warnings after manual testing. See
+ARCHITECTURE.md decisions log #71.
+
+**Report 035 (`Selection/placement race fix, corrected`), 2026-07-23** — the human found
 Report 034's placement/selection fix (decision #69(c)) didn't actually work: `PlacementController`/
 `SelectionController`'s `Update()`s have no guaranteed execution order, so the `IsPlacing` guard
 only helped in whichever frames Placement happened to run second — cancelling still moved the
@@ -261,14 +295,15 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–035):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–037):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
 ~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
 ~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~,
 ~~Procedural island tilemap generation~~, ~~Unit animations~~,
-~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~.
+~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~,
+~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the

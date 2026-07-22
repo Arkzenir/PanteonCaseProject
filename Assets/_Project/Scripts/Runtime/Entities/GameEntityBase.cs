@@ -55,6 +55,15 @@ namespace CaseGame.Entities
             _health.ApplyDamage(amount);
         }
 
+        /// <summary>Keeps the selection outline tracking whichever sprite frame is currently showing — needed now that <see cref="Units.SoldierBase"/> soldiers animate <see cref="spriteRenderer"/>'s sprite every frame via their <c>Animator</c> (Report 033), which would otherwise leave the outline frozen on its initial pose while the real sprite moves. <c>LateUpdate</c>, not <c>Update</c>, so this always runs after the Animator has applied the current frame's sprite. Gated on the outline actually being visible — this is free rendering-wise (same shared atlas texture, same outline material/draw call either way, see chat), but there's no reason to do even a cheap reference copy for the common case of an unselected entity.</summary>
+        private void LateUpdate()
+        {
+            if (outlineRenderer != null && outlineRenderer.enabled && spriteRenderer != null)
+            {
+                outlineRenderer.sprite = spriteRenderer.sprite;
+            }
+        }
+
         /// <summary>Visual-only selection feedback (Selection decides *what's* selected; this just renders it) — toggles a dedicated outline child renderer (same sprite, <c>SpriteSelectionOutline</c> shader) rather than tinting the real sprite, so full-color art doesn't get muddied by a color multiply (same reasoning as the Placement ghost's desaturate-then-tint approach).</summary>
         public void SetSelected(bool selected)
         {

@@ -32,9 +32,19 @@ namespace CaseGame.Units
         private GameEntityBase _pendingRangedTarget;
         private int _pendingRangedDamage;
         private ProjectileFactory _pendingProjectileFactory;
+        private int _idleStateHash;
 
         /// <summary>Whether a move or attack coroutine is currently running — exposed for observers/tests, mirroring <c>PlacementController.IsPlacing</c>'s pattern.</summary>
         public bool IsActing => _actionCoroutine != null;
+
+        /// <summary>Captures the Animator's default (Idle) state hash — every wired controller's default state is Idle (Report 033) — so <see cref="CancelAction"/> can force an in-progress attack animation straight back to it without hardcoding any of the 3 controllers' differently-named states. <c>Start</c>, not <c>Awake</c>: the built-in Animator component isn't guaranteed to have evaluated its default state that early.</summary>
+        private void Start()
+        {
+            if (animator != null && animator.runtimeAnimatorController != null)
+            {
+                _idleStateHash = animator.GetCurrentAnimatorStateInfo(0).fullPathHash;
+            }
+        }
 
         /// <summary>Requests the shortest path to <paramref name="targetCell"/> and walks it, routing around buildings (GI-7/8). Cancels any in-progress attack — a move order always takes over, per the human's cancellation rule. No-ops (but still cancels) if unreachable or already there.</summary>
         public void MoveTo(Vector2Int targetCell, GridModel grid)
@@ -69,7 +79,7 @@ namespace CaseGame.Units
             _actionCoroutine = StartCoroutine(AttackRoutine(target, grid, projectileFactory));
         }
 
-        /// <summary>Cancels whichever move/attack coroutine is currently running. Safe to call when nothing is active. Also resets the "moving" animation state — <c>StopCoroutine</c> abandons <see cref="FollowPath"/> wherever it was suspended, so without this an interrupted move (e.g. a new attack order mid-stride) would leave the run animation stuck on.</summary>
+        /// <summary>Cancels whichever move/attack coroutine is currently running. Safe to call when nothing is active. Also resets the "moving" animation state — <c>StopCoroutine</c> abandons <see cref="FollowPath"/> wherever it was suspended, so without this an interrupted move (e.g. a new attack order mid-stride) would leave the run animation stuck on. If a ranged attack's projectile release is still pending (the Archer's draw animation hasn't reached its release event yet), the attack animation is forced straight back to Idle instead of being left to play out — otherwise the already-cancelled attack would still visually finish and fire its projectile after the unit had already moved on (human-reported).</summary>
         public void CancelAction()
         {
             if (_actionCoroutine != null)
@@ -81,7 +91,14 @@ namespace CaseGame.Units
             if (animator != null)
             {
                 animator.SetBool(IsMovingHash, false);
+
+                if (_pendingRangedTarget != null)
+                {
+                    animator.Play(_idleStateHash, 0, 0f);
+                }
             }
+
+            _pendingRangedTarget = null;
         }
 
         /// <summary>Seconds a single grid step should take at the given cells-per-second move speed — every step, orthogonal or diagonal, counts as exactly 1 cell (GI-7/8's "shortest path" is measured in steps, not world distance), so this depends only on <paramref name="moveSpeed"/>, never on the step's actual world distance. Pure so this specific contract is directly testable without a live coroutine/Update loop.</summary>

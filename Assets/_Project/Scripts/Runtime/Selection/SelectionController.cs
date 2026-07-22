@@ -145,6 +145,13 @@ namespace CaseGame.Selection
 
             foreach (var soldier in _selectedSoldiers)
             {
+                if (hitTarget == soldier)
+                {
+                    // A soldier can't attack itself — no-ops for this one soldier specifically;
+                    // other selected soldiers still process the same click normally.
+                    continue;
+                }
+
                 if (hitTarget != null)
                 {
                     soldier.Attack(hitTarget, _grid, _projectileFactory);
