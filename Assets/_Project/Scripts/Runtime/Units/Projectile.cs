@@ -19,6 +19,7 @@ namespace CaseGame.Units
     {
         [SerializeField] private float speed = 12f;
         [SerializeField] private float arrivalDistance = 0.05f;
+        [SerializeField] private float spriteForwardOffsetDegrees;
 
         private GameEntityBase _target;
         private int _damage;
@@ -44,6 +45,19 @@ namespace CaseGame.Units
             return Vector3.Distance(currentPosition, targetPosition) <= arrivalDistance;
         }
 
+        /// <summary>Rotation that points this projectile from <paramref name="currentPosition"/> toward <paramref name="targetPosition"/> (human-requested: the arrow should visibly face its travel direction, not stay at a fixed orientation). <paramref name="forwardOffsetDegrees"/> corrects for the sprite's own drawn orientation — the art's "forward" isn't guaranteed to be +X, so this is inspector-tunable rather than hardcoded. Identity when the two positions coincide (no direction to face), which only happens at the exact arrival instant. Pure so the angle math is directly testable independent of a live <c>Update</c> loop.</summary>
+        public static Quaternion FacingRotation(Vector3 currentPosition, Vector3 targetPosition, float forwardOffsetDegrees)
+        {
+            var direction = targetPosition - currentPosition;
+            if (direction.sqrMagnitude < 0.0000001f)
+            {
+                return Quaternion.identity;
+            }
+
+            var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+            return Quaternion.AngleAxis(angle + forwardOffsetDegrees, Vector3.forward);
+        }
+
         private void Update()
         {
             // Pooled-reuse hazard (same class of issue as decisions log #39/#52/#55): the target
@@ -58,6 +72,7 @@ namespace CaseGame.Units
             }
 
             var targetPosition = _target.transform.position;
+            transform.rotation = FacingRotation(transform.position, targetPosition, spriteForwardOffsetDegrees);
             transform.position = Step(transform.position, targetPosition, speed, Time.deltaTime);
 
             if (HasArrived(transform.position, targetPosition, arrivalDistance))

@@ -122,6 +122,37 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &64970894
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 64970895}
+  m_Layer: 0
+  m_Name: Projectiles
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &64970895
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 64970894}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 911918498}
+  m_RootOrder: 2
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &235465829
 GameObject:
   m_ObjectHideFlags: 0
@@ -681,6 +712,7 @@ Transform:
   m_Children:
   - {fileID: 329796940}
   - {fileID: 1907198268}
+  - {fileID: 64970895}
   m_Father: {fileID: 0}
   m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1030,8 +1062,8 @@ MonoBehaviour:
   gridView: {fileID: 637693003}
   buildingsContainer: {fileID: 329796940}
   unitsContainer: {fileID: 1907198268}
-  projectilesContainer: {fileID: 0}
-  projectilePrefab: {fileID: 0}
+  projectilesContainer: {fileID: 64970895}
+  projectilePrefab: {fileID: 7299743215885562934, guid: e391582e1f2331e4cb563368acbff2b9, type: 3}
   placementController: {fileID: 433717985}
   selectionController: {fileID: 1007385005}
   unitProductionController: {fileID: 1830335314}

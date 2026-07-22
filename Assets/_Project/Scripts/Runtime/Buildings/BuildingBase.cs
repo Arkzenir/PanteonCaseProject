@@ -47,5 +47,20 @@ namespace CaseGame.Buildings
                 _isPlacedOnGrid = false;
             }
         }
+
+        /// <summary>Clamps <paramref name="fromCell"/> into this building's footprint rectangle rather than always reporting its origin — an attacker standing anywhere around a multi-cell building should be considered "in range" of whichever edge cell is actually nearest to it. Falls back to the shared single-cell default if this building isn't currently placed on a grid (matches <see cref="GetNearestOccupiedCell"/>'s base behavior for that edge case).</summary>
+        public override Vector2Int GetNearestOccupiedCell(GridModel grid, Vector2Int fromCell)
+        {
+            if (!FootprintOrigin.HasValue)
+            {
+                return base.GetNearestOccupiedCell(grid, fromCell);
+            }
+
+            var origin = FootprintOrigin.Value;
+            var footprint = Definition.Footprint;
+            return new Vector2Int(
+                Mathf.Clamp(fromCell.x, origin.x, origin.x + footprint.x - 1),
+                Mathf.Clamp(fromCell.y, origin.y, origin.y + footprint.y - 1));
+        }
     }
 }

@@ -164,5 +164,62 @@ namespace CaseGame.Tests.EditMode.Buildings
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
         }
+
+        [Test]
+        public void GetNearestOccupiedCell_AttackerOutsideFootprint_ClampsToNearestEdgeCell()
+        {
+            var go = new GameObject("Building");
+            var building = go.AddComponent<TestBuilding>();
+            var definition = ScriptableObject.CreateInstance<BuildingDefinition>();
+            var defSo = new SerializedObject(definition);
+            defSo.FindProperty("footprint").vector2IntValue = new Vector2Int(2, 2);
+            defSo.ApplyModifiedPropertiesWithoutUndo();
+            building.Initialize(definition);
+            var grid = CreateGrid(10, 10);
+            building.SetPlacement(grid, new Vector2Int(3, 3)); // occupies (3,3)-(4,4)
+
+            var nearestCell = building.GetNearestOccupiedCell(grid, new Vector2Int(0, 3));
+
+            Assert.AreEqual(new Vector2Int(3, 3), nearestCell);
+
+            Object.DestroyImmediate(go);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void GetNearestOccupiedCell_AttackerAboveFootprint_ClampsToTopEdge()
+        {
+            var go = new GameObject("Building");
+            var building = go.AddComponent<TestBuilding>();
+            var definition = ScriptableObject.CreateInstance<BuildingDefinition>();
+            var defSo = new SerializedObject(definition);
+            defSo.FindProperty("footprint").vector2IntValue = new Vector2Int(2, 2);
+            defSo.ApplyModifiedPropertiesWithoutUndo();
+            building.Initialize(definition);
+            var grid = CreateGrid(10, 10);
+            building.SetPlacement(grid, new Vector2Int(3, 3)); // occupies (3,3)-(4,4)
+
+            var nearestCell = building.GetNearestOccupiedCell(grid, new Vector2Int(3, 9));
+
+            Assert.AreEqual(new Vector2Int(3, 4), nearestCell);
+
+            Object.DestroyImmediate(go);
+            Object.DestroyImmediate(definition);
+        }
+
+        [Test]
+        public void GetNearestOccupiedCell_NeverPlaced_FallsBackToTransformPositionCell()
+        {
+            var go = new GameObject("Building");
+            go.transform.position = new Vector3(0.5f, 0.5f, 0f);
+            var building = go.AddComponent<TestBuilding>();
+            var grid = CreateGrid(10, 10);
+
+            var nearestCell = building.GetNearestOccupiedCell(grid, new Vector2Int(5, 5));
+
+            Assert.AreEqual(new Vector2Int(0, 0), nearestCell);
+
+            Object.DestroyImmediate(go);
+        }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using CaseGame.Combat;
+using CaseGame.Grid;
 using UnityEngine;
 
 namespace CaseGame.Entities
@@ -57,6 +58,12 @@ namespace CaseGame.Entities
             {
                 outlineRenderer.enabled = selected;
             }
+        }
+
+        /// <summary>Grid cell nearest to <paramref name="fromCell"/> that this entity actually occupies. Default (units): just its own cell. <see cref="Buildings.BuildingBase"/> overrides this to clamp into its multi-cell footprint instead of always reporting one arbitrary corner — lets attack range/approach-pathing (<see cref="Units.SoldierBase"/>) treat buildings and units identically without a Units→Buildings reference (circular-dependency constraint, see ARCHITECTURE.md decisions log).</summary>
+        public virtual Vector2Int GetNearestOccupiedCell(GridModel grid, Vector2Int fromCell)
+        {
+            return grid.WorldToCell(transform.position);
         }
 
         private void HandleDied()

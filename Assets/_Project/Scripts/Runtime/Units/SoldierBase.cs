@@ -103,14 +103,16 @@ namespace CaseGame.Units
 
         private IEnumerator AttackRoutine(GameEntityBase target, GridModel grid, ProjectileFactory projectileFactory)
         {
-            if (!IsInRange(grid.WorldToCell(transform.position), grid.WorldToCell(target.transform.position), Definition.AttackRange))
+            var attackerCell = grid.WorldToCell(transform.position);
+            var nearestTargetCell = target.GetNearestOccupiedCell(grid, attackerCell);
+
+            if (!IsInRange(attackerCell, nearestTargetCell, Definition.AttackRange))
             {
-                var approachCell = AStarPathfinder.FindApproachCell(
-                    grid, grid.WorldToCell(transform.position), grid.WorldToCell(target.transform.position), Definition.AttackRange);
+                var approachCell = AStarPathfinder.FindApproachCell(grid, attackerCell, nearestTargetCell, Definition.AttackRange);
 
                 if (approachCell.HasValue)
                 {
-                    var path = AStarPathfinder.FindPath(grid, grid.WorldToCell(transform.position), approachCell.Value);
+                    var path = AStarPathfinder.FindPath(grid, attackerCell, approachCell.Value);
                     if (path != null && path.Count > 1)
                     {
                         yield return FollowPath(grid, path);
@@ -121,7 +123,7 @@ namespace CaseGame.Units
             var attackInterval = AttackInterval(Definition.AttackSpeed);
 
             while (target != null && !target.IsDead &&
-                   IsInRange(grid.WorldToCell(transform.position), grid.WorldToCell(target.transform.position), Definition.AttackRange))
+                   IsInRange(grid.WorldToCell(transform.position), target.GetNearestOccupiedCell(grid, grid.WorldToCell(transform.position)), Definition.AttackRange))
             {
                 PerformAttack(target, projectileFactory);
 

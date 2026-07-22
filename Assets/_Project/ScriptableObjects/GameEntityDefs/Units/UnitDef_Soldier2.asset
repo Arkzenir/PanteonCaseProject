@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: UnitDef_Soldier2
   m_EditorClassIdentifier: 
   entityName: Soldier 2
-  sprite: {fileID: -594197781322936934, guid: 2307ce0d618cb4ea2be2cb2a4148cbde, type: 3}
+  sprite: {fileID: 7257567913506708742, guid: 72c22f22ea5e4488390ba536cd5ab98d, type: 3}
   footprint: {x: 1, y: 1}
   maxHealth: 10
   attackDamage: 5

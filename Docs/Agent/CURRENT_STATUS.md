@@ -7,7 +7,18 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 027 (`Ranged combat & combat overhaul`), 2026-07-22 — backlog item 12, the
+**Last report:** 028 (`Combat/UI bugfix pass`), 2026-07-22 — 3 human-flagged fixes following
+Report 027. (1) Attacking a building now targets the nearest cell of its actual footprint, not
+always its `transform.position` cell — new `GameEntityBase.GetNearestOccupiedCell` (default: own
+cell), overridden in `BuildingBase` to clamp into its footprint rectangle; `SoldierBase.AttackRoutine`
+uses it for both the range check and approach-pathing. (2) `Projectile` now rotates to face its
+travel direction each frame (`FacingRotation`, pure/testable), with an inspector-tunable
+`spriteForwardOffsetDegrees` since the Arrow.png art's own default facing wasn't verified in code.
+(3) The 3 building/unit icon `Image`s that were stretching fixed-size art (`InformationPanel`'s
+`BuildingIcon`, `ProducibleUnitIcon`'s `Image`, `ProductionMenuItem`'s `Icon`) now have
+`Preserve Aspect` on — direct prefab edits, no layout change. 186/186 EditMode tests passing.
+
+**Report 027 (`Ranged combat & combat overhaul`), 2026-07-22** — backlog item 12, the
 largest single feature so far. `SoldierBase.TryAttack` (instant hit) replaced by `Attack`: walks
 into range then sustains a tick loop until the target dies or leaves range; melee/ranged share
 the path, only damage delivery differs (instant vs. a new pooled `Projectile`). Soldier 2 is now
@@ -136,7 +147,7 @@ tracking, no unit collision) landed in one pass:
 
 179/179 EditMode tests passing, 0 compile errors.
 
-See ARCHITECTURE.md decisions log #52–62 for the full reasoning on each.
+See ARCHITECTURE.md decisions log #52–63 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -157,11 +168,11 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–027):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–028):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
-~~Ranged combat & combat overhaul~~.
+~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
