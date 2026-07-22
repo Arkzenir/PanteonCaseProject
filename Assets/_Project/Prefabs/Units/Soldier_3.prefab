@@ -68,6 +68,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4742930241997168764}
   - component: {fileID: 1084404046764535485}
+  - component: {fileID: 8113560575876210518}
   m_Layer: 0
   m_Name: Visuals
   m_TagString: Untagged
@@ -142,6 +143,27 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!95 &8113560575876210518
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3518123369925778331}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 392949dc7dc664ffa92fa29ae687d347, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0
 --- !u!1 &4545764828670120125
 GameObject:
   m_ObjectHideFlags: 0
@@ -191,6 +213,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   spriteRenderer: {fileID: 1084404046764535485}
   outlineRenderer: {fileID: 8426267422797081615}
+  animator: {fileID: 8113560575876210518}
 --- !u!1 &6194720669401121115
 GameObject:
   m_ObjectHideFlags: 0

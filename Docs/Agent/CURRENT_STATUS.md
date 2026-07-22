@@ -7,7 +7,21 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 032 (`Procedural island tilemap generation`), 2026-07-22 — human follow-up to
+**Last report:** 033 (`Unit animations`), 2026-07-23 — backlog item 18. `SoldierBase` gained an
+optional `Animator` field (mirrors `GameEntityBase`'s direct `spriteRenderer`/`outlineRenderer`
+handles) driving `IsMoving` (bool, wraps `FollowPath`, reset in `CancelAction` so an interrupted
+move never sticks) and `Attack` (trigger, fired once per `PerformAttack`). The Tiny Swords
+Warrior/Archer/Pawn Animator Controllers shipped as unwired scaffolds (every clip present, zero
+parameters/transitions) — a throwaway script built the actual Idle/Run/Attack state machine on
+all 3 via `UnityEditor.Animations.AnimatorController`'s API, then added the `Animator` component
+to each soldier prefab's `Visuals` child specifically (confirmed via the clips' own empty-path
+sprite binding — root placement would have silently done nothing). Soldier 3 keeps its Pawn art
+per human confirmation (its `Attack` trigger maps to `Pawn_Interact Knife_Blue`, a generic
+tool-use clip standing in for a combat swing). 218/218 EditMode tests passing (no new tests —
+the added logic is pure null-guarded side effects, already implicitly covered by existing
+MoveTo/Attack tests that pass no `Animator`).
+
+**Report 032 (`Procedural island tilemap generation`), 2026-07-22** — human follow-up to
 Report 031: the human hand-painted the grass/cliff island (leaving out Water Foam) using the Tile
 Palette walkthrough from Report 031, then asked for that exact result to regenerate procedurally
 for any grid size. New `IslandTileSet` SO (12 named tile references: 9 for the grass 9-slice, 3
@@ -217,25 +231,19 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–032):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–033):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
 ~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
 ~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~,
-~~Procedural island tilemap generation~~.
+~~Procedural island tilemap generation~~, ~~Unit animations~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-18. **Unit animations** — idle/move/attack, ideally sequenced after item 11 (movement timing)
-    and item 12 (ranged combat) land, so animation trigger points match final movement/attack
-    logic rather than needing rework. The Tiny Swords pack already ships full Animator
-    Controllers + clips for these unit types (noticed during Report 018's audit) — this may be
-    mostly wiring an `Animator`/`AnimatorController` onto the soldier prefabs and triggering
-    states from `SoldierBase`, not building animation from scratch.
 19. **Death/destruction particle effects** — a burst/VFX on unit death and building destruction.
     Small and low-dependency: both already funnel through the same shared `Health.Died` event
     (`GameEntityBase`, decisions log #19), so this is likely one hookup point (a particle-prefab

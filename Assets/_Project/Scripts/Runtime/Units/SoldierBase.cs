@@ -21,6 +21,11 @@ namespace CaseGame.Units
     /// </summary>
     public abstract class SoldierBase : GameEntityBase
     {
+        private static readonly int IsMovingHash = Animator.StringToHash("IsMoving");
+        private static readonly int AttackHash = Animator.StringToHash("Attack");
+
+        [SerializeField] private Animator animator;
+
         public new UnitDefinition Definition => (UnitDefinition)base.Definition;
 
         private Coroutine _actionCoroutine;
@@ -61,13 +66,18 @@ namespace CaseGame.Units
             _actionCoroutine = StartCoroutine(AttackRoutine(target, grid, projectileFactory));
         }
 
-        /// <summary>Cancels whichever move/attack coroutine is currently running. Safe to call when nothing is active.</summary>
+        /// <summary>Cancels whichever move/attack coroutine is currently running. Safe to call when nothing is active. Also resets the "moving" animation state — <c>StopCoroutine</c> abandons <see cref="FollowPath"/> wherever it was suspended, so without this an interrupted move (e.g. a new attack order mid-stride) would leave the run animation stuck on.</summary>
         public void CancelAction()
         {
             if (_actionCoroutine != null)
             {
                 StopCoroutine(_actionCoroutine);
                 _actionCoroutine = null;
+            }
+
+            if (animator != null)
+            {
+                animator.SetBool(IsMovingHash, false);
             }
         }
 
@@ -138,9 +148,14 @@ namespace CaseGame.Units
             _actionCoroutine = null;
         }
 
-        /// <summary>Melee attacks apply damage instantly (unchanged brief-minimum behavior); ranged attacks launch a tracked <see cref="Projectile"/> instead — same code path either way, only the projectile visual differs (human-directed).</summary>
+        /// <summary>Melee attacks apply damage instantly (unchanged brief-minimum behavior); ranged attacks launch a tracked <see cref="Projectile"/> instead — same code path either way, only the projectile visual differs (human-directed). Fires the <c>Attack</c> animation trigger once per call, the single point every actual hit/shot passes through.</summary>
         private void PerformAttack(GameEntityBase target, ProjectileFactory projectileFactory)
         {
+            if (animator != null)
+            {
+                animator.SetTrigger(AttackHash);
+            }
+
             if (Definition.Ranged && projectileFactory != null)
             {
                 projectileFactory.Launch(transform.position, target, Definition.AttackDamage);
@@ -151,8 +166,14 @@ namespace CaseGame.Units
             }
         }
 
+        /// <summary>Walks <paramref name="path"/> one cell at a time. Toggles the <c>IsMoving</c> animation bool on for the duration — used by both <see cref="MoveRoutine"/> and <see cref="AttackRoutine"/>'s walk-into-range phase, so either context shows the run animation.</summary>
         private IEnumerator FollowPath(GridModel grid, List<Vector2Int> path)
         {
+            if (animator != null)
+            {
+                animator.SetBool(IsMovingHash, true);
+            }
+
             var stepDuration = StepDuration(Definition.MoveSpeed);
 
             for (var i = 1; i < path.Count; i++)
@@ -169,6 +190,11 @@ namespace CaseGame.Units
                 }
 
                 transform.position = targetPosition;
+            }
+
+            if (animator != null)
+            {
+                animator.SetBool(IsMovingHash, false);
             }
         }
     }
