@@ -7,7 +7,18 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 028 (`Combat/UI bugfix pass`), 2026-07-22 — 3 human-flagged fixes following
+**Last report:** 029 (`Grid line rendering`), 2026-07-22 — backlog item 16. `GridView`'s
+Scene-view-only `OnDrawGizmos` replaced with an actual runtime-rendered grid: the whole board's
+lines are built as one combined mesh (`GridLineMeshBuilder`, one quad per line) rendered by a
+single `MeshRenderer`/`MeshFilter` — one draw call total regardless of board size, protecting
+GI-12's <20 SetPass-call budget (one `LineRenderer` per line would have cost dozens). New
+`GridLines.shader`/`M_GridLines.mat` (plain vertex-color pass-through). `GridDefinition` gained
+`LineColor`/`LineThickness` (data-driven visuals); `GridView` gained `[ExecuteAlways]` + a cheap
+Edit-Mode `Update` signature check so tweaking `GridDefinition` previews live without Play Mode,
+plus a public `SetLinesVisible(bool)` toggle (no scene UI button wired this pass — the backlog
+text called that part optional). 194/194 EditMode tests passing.
+
+**Report 028 (`Combat/UI bugfix pass`), 2026-07-22** — 3 human-flagged fixes following
 Report 027. (1) Attacking a building now targets the nearest cell of its actual footprint, not
 always its `transform.position` cell — new `GameEntityBase.GetNearestOccupiedCell` (default: own
 cell), overridden in `BuildingBase` to clamp into its footprint rectangle; `SoldierBase.AttackRoutine`
@@ -147,7 +158,7 @@ tracking, no unit collision) landed in one pass:
 
 179/179 EditMode tests passing, 0 compile errors.
 
-See ARCHITECTURE.md decisions log #52–63 for the full reasoning on each.
+See ARCHITECTURE.md decisions log #52–62 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -168,42 +179,17 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–028):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–029):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
-~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~.
+~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-15. **Production Menu scroll fix** — dragging the scroll fast enough currently loses the
-    top-of-list items (not the bottom ones); worked around by the human setting
-    `ScrollRect.movementType` to `Clamped` directly in the scene (see ARCHITECTURE.md §4) instead
-    of the Unity-default `Elastic`. Decide at implementation time whether `Clamped` is the
-    permanent fix or whether `ScrollRecycler`/`ProductionMenuController`'s own recycling math
-    (decisions #31/#34) has a real bug worth fixing instead.
-16. **Grid line rendering (runtime, data-driven, toggleable)** — human-added 2026-07-22.
-    `GridView` currently draws lines only via `OnDrawGizmos` — Scene-view/editor-only, never
-    visible in Play Mode or a build. Replace with an actual runtime-rendered grid (`LineRenderer`
-    or equivalent), with four specific requirements:
-    - **Toggleable on/off**, via an API call/event *and* optionally a UI button — needs a public
-      method/property on `GridView` (or a new small `GridVisualController`) that something can
-      call/bind to; where the UI button lives (Settings? an in-scene toggle?) is open, human's
-      call at implementation time.
-    - **Data-driven visuals** (color, line thickness, etc.) — extend `GridDefinition` with new
-      fields, same pattern as the existing `cellSize`/`columns`/`rows`/`originWorldPosition`
-      (decision #5: nothing about the grid is hardcoded).
-    - **Renders behind everything else** — sorting layer/order on the line-rendering component
-      set so buildings/units/ghosts are never occluded by grid lines.
-    - **Live-updates in Edit Mode** as `GridDefinition` values change in the Inspector, without
-      entering Play Mode — real implementation challenge: `GridView.Awake()` (where `GridModel`
-      is currently built) doesn't fire in Edit Mode at all (the same Awake-doesn't-fire-outside-
-      Play-Mode gotcha `ENVIRONMENT.md`/decisions log already document elsewhere). Likely needs
-      `[ExecuteAlways]` plus rebuilding the rendered lines from `OnValidate`/a change-driven hook,
-      not relying on `Awake`.
 17. **Environment/terrain visuals** — likely the largest single item in this backlog:
     - Tilemap terrain backdrop so the ground isn't empty/skybox behind the grid. Optionally tie
       specific tile types (forest, mountain) to *inherent* grid occupancy — i.e. some cells are
@@ -212,7 +198,7 @@ order below is dependency-aware, not a hard requirement — pick freely.
       spawn-cell-occupancy work (above) — worth designing together, since both touch "what
       counts as occupied."
     - Auto-generated/placed border tiles around the grid's edges (e.g. forest/mountain), so the
-      board's boundary reads visually, not just via the grid lines (item 16, above).
+      board's boundary reads visually, not just via the grid lines (Report 029).
     - Once terrain art exists, add it to `SpriteAtlas_Gameplay.spriteatlas` (Report 018) —
       folder-level packing already covers *building/unit* art automatically; terrain art will
       likely live in a different source folder and need its own packable entry added.

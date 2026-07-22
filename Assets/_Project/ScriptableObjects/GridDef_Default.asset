@@ -16,3 +16,5 @@ MonoBehaviour:
   columns: 20
   rows: 12
   originWorldPosition: {x: 0, y: 0}
+  lineColor: {r: 1, g: 1, b: 1, a: 0.35}
+  lineThickness: 0.025
