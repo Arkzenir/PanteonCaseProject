@@ -7,8 +7,8 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 022 (`Selection polish`), 2026-07-22. Compile clean,
-**161/161 EditMode tests passing** (160 prior + 1 new).
+**Last report:** 023 (`Movement timing fix`), 2026-07-22. Compile clean,
+**167/167 EditMode tests passing** (161 prior + 6 new).
 
 **Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
 Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
@@ -46,7 +46,17 @@ same style as the Placement ghost's shader) drawn by a new `outlineRenderer` chi
 entity prefabs, toggled via `SpriteRenderer.enabled`. Wired via a throwaway editor script,
 verified by reading the regenerated prefab/material files back, then deleted per policy.
 
-See ARCHITECTURE.md decisions log #52–56 for the full reasoning on each.
+**Report 023 (this one) — item 11 off the backlog, "Movement timing fix."**
+`SoldierBase.FollowPath` moved from `Vector3.MoveTowards(..., MoveSpeed * Time.deltaTime)` (a
+constant *world-distance* speed — diagonal steps took ~41% longer than orthogonal ones at the
+same nominal speed) to a fixed per-step duration (`StepDuration(moveSpeed) = 1f / moveSpeed`)
+with time-based interpolation (`InterpolateStep`) — both pure static methods, directly unit
+tested (matches the human's own worked example: 8 steps at speed 4 = exactly 2s, diagonal mix
+irrelevant). **Note:** since the grid's actual `cellSize` is 0.5, existing
+`UnitDefinition.moveSpeed` values (3/5/3) now mean a real ~2× slower felt speed than before —
+data-only, hand-tune in the Inspector if it feels off.
+
+See ARCHITECTURE.md decisions log #52–57 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -67,23 +77,16 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–022):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–023):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
-~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~.
+~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
+~~Movement timing fix~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-11. **Movement timing fix** — `SoldierBase.MoveSpeed` should mean "N grid cells per second,"
-    with a **diagonal step counting as 1 cell**, not √2 world-distance units (today
-    `FollowPath`'s `Vector3.MoveTowards(..., MoveSpeed * Time.deltaTime)` moves at a constant
-    *world-distance* speed, so diagonal steps currently take longer than orthogonal ones at the
-    same nominal speed). Revisit `SoldierBase.FollowPath`'s per-step timing math — likely needs
-    a fixed per-step duration (`1f / MoveSpeed` seconds) rather than distance-based
-    `MoveTowards`, so a path with 5 orthogonal + 3 diagonal steps at speed 4 takes exactly
-    8 × 0.25s = 2s regardless of diagonal mix (the human's own worked example).
 12. **Ranged combat**:
     - `UnitDefinition` gains a `ranged` bool and an `attackRange` field (footprint-cell units,
       presumably) — melee units can have `attackRange` &gt; 1 too (just no projectile); only

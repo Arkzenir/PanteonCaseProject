@@ -58,14 +58,29 @@ namespace CaseGame.Units
             target.ApplyDamage(Definition.AttackDamage);
         }
 
+        /// <summary>Seconds a single grid step should take at the given cells-per-second move speed — every step, orthogonal or diagonal, counts as exactly 1 cell (GI-7/8's "shortest path" is measured in steps, not world distance), so this depends only on <paramref name="moveSpeed"/>, never on the step's actual world distance. Pure so this specific contract is directly testable without a live coroutine/Update loop.</summary>
+        public static float StepDuration(float moveSpeed) => 1f / moveSpeed;
+
+        /// <summary>Position along a single step at a given elapsed time — clamped to <paramref name="end"/> once <paramref name="elapsed"/> reaches <paramref name="duration"/>. Pure so the interpolation itself is testable independent of <see cref="Time.deltaTime"/>.</summary>
+        public static Vector3 InterpolateStep(Vector3 start, Vector3 end, float elapsed, float duration)
+        {
+            return Vector3.Lerp(start, end, duration > 0f ? Mathf.Clamp01(elapsed / duration) : 1f);
+        }
+
         private IEnumerator FollowPath(GridModel grid, List<Vector2Int> path)
         {
+            var stepDuration = StepDuration(Definition.MoveSpeed);
+
             for (var i = 1; i < path.Count; i++)
             {
+                var startPosition = transform.position;
                 var targetPosition = (Vector3)grid.CellCenterToWorld(path[i]);
-                while ((transform.position - targetPosition).sqrMagnitude > 0.0001f)
+                var elapsed = 0f;
+
+                while (elapsed < stepDuration)
                 {
-                    transform.position = Vector3.MoveTowards(transform.position, targetPosition, Definition.MoveSpeed * Time.deltaTime);
+                    elapsed += Time.deltaTime;
+                    transform.position = InterpolateStep(startPosition, targetPosition, elapsed, stepDuration);
                     yield return null;
                 }
 

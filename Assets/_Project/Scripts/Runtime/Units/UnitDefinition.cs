@@ -15,6 +15,8 @@ namespace CaseGame.Units
         [SerializeField] private float moveSpeed = 3f;
 
         public int AttackDamage => attackDamage;
+
+        /// <summary>Cells per second — a diagonal step costs the same as an orthogonal one (both count as exactly 1 cell), not scaled by world distance. See <see cref="SoldierBase.StepDuration"/>.</summary>
         public float MoveSpeed => moveSpeed;
 
         protected override void OnValidate()

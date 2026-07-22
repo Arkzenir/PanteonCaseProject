@@ -121,5 +121,63 @@ namespace CaseGame.Tests.EditMode.Units
             Object.DestroyImmediate(go);
             Object.DestroyImmediate(definition);
         }
+
+        [Test]
+        public void StepDuration_ReturnsReciprocalOfMoveSpeed()
+        {
+            Assert.AreEqual(0.25f, SoldierBase.StepDuration(4f), 0.0001f);
+        }
+
+        [Test]
+        public void StepDuration_MatchesWorkedExample_EightStepsAtSpeedFourTakeTwoSeconds()
+        {
+            var stepDuration = SoldierBase.StepDuration(4f);
+            var totalDuration = 8 * stepDuration; // 5 orthogonal + 3 diagonal steps — every step counts as 1 cell
+
+            Assert.AreEqual(2f, totalDuration, 0.0001f);
+        }
+
+        [Test]
+        public void InterpolateStep_AtZeroElapsed_ReturnsStart()
+        {
+            var result = SoldierBase.InterpolateStep(Vector3.zero, new Vector3(5f, 0f, 0f), 0f, 1f);
+
+            Assert.AreEqual(Vector3.zero, result);
+        }
+
+        [Test]
+        public void InterpolateStep_AtHalfDuration_ReturnsMidpoint()
+        {
+            var result = SoldierBase.InterpolateStep(Vector3.zero, new Vector3(10f, 0f, 0f), 0.5f, 1f);
+
+            Assert.AreEqual(new Vector3(5f, 0f, 0f), result);
+        }
+
+        [Test]
+        public void InterpolateStep_ElapsedAtOrPastDuration_ClampsToEnd()
+        {
+            var end = new Vector3(3f, 4f, 0f);
+
+            Assert.AreEqual(end, SoldierBase.InterpolateStep(Vector3.zero, end, 1f, 1f));
+            Assert.AreEqual(end, SoldierBase.InterpolateStep(Vector3.zero, end, 5f, 1f)); // overshoot still clamps
+        }
+
+        [Test]
+        public void InterpolateStep_DiagonalStep_SameElapsedFractionOfEqualDuration_ReachesSameProgressFractionAsOrthogonal()
+        {
+            // A diagonal step covers more world distance than an orthogonal one, but at the same
+            // elapsed fraction of the same (fixed) duration both must be at the same *progress
+            // fraction* — this is what makes the interpolation time-based, not distance-based,
+            // fixing the bug where diagonal steps used to take longer at the same nominal speed.
+            var orthogonalEnd = new Vector3(1f, 0f, 0f);
+            var diagonalEnd = new Vector3(1f, 1f, 0f);
+
+            var orthogonalResult = SoldierBase.InterpolateStep(Vector3.zero, orthogonalEnd, 0.5f, 1f);
+            var diagonalResult = SoldierBase.InterpolateStep(Vector3.zero, diagonalEnd, 0.5f, 1f);
+
+            Assert.AreEqual(0.5f, orthogonalResult.x, 0.0001f);
+            Assert.AreEqual(0.5f, diagonalResult.x, 0.0001f);
+            Assert.AreEqual(0.5f, diagonalResult.y, 0.0001f);
+        }
     }
 }
