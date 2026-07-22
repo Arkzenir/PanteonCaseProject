@@ -7,12 +7,10 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 025 (`Info Panel stack reflow`), 2026-07-22 — same-day polish-and-bugfix pass
-following Report 024 (three parts: the stack layout itself, a width bug the human caught and
-fixed by hand, and a layout-timing bug fixed in `InfoPanelController`). Human hand-verified in
-the Editor throughout; no batch test run requested for this pass (167/167 stood as of Report
-024 — the one runtime code change, `SetSelectedBuilding`/`DestroyView`, isn't covered by
-EditMode tests either way, being a Play-Mode-only layout-timing concern).
+**Last report:** 026 (`UI visual polish`), 2026-07-22 — backlog item 14: banner headers on the
+Production Menu and Information Panel, plus a Main Menu "How to Play" screen. Pure editor/prefab/
+scene wiring (one small code change mirroring the existing Settings-panel pattern exactly). Per
+explicit instruction, no batchmode compile/test run this turn — human is testing by eye.
 
 **Earlier history, condensed** (full detail in ARCHITECTURE.md's implementation log if needed):
 Report 017 (Gameplay scene assembly) was hand-tested once by the human and confirmed "purely
@@ -88,7 +86,26 @@ the grid grows past 1 row. Two bugs the human caught while testing, both fixed s
   deferred `Destroy()` was leaving old icons counted by the grid on the very frame being force-
   rebuilt).
 
-See ARCHITECTURE.md decisions log #52–60 for the full reasoning on each.
+**Report 026 (this one) — backlog item 14, "UI visual polish."** Two pieces:
+- **Banner headers** on the Production Menu and Information Panel (not the Game Board).
+  `ProductionMenu.prefab`'s root anchor trimmed to free a top strip for a new
+  `ProductionMenuBanner` sibling in `Gameplay.unity`'s Canvas — didn't touch the `ScrollRect`'s
+  own `Viewport`/`Content` anchors, since their current values look unusual and the agent didn't
+  want to risk breaking a working scroll view chasing that down. Information Panel's banner
+  added inside `PanelContent`'s existing `VerticalLayoutGroup` stack instead (Report 025) —
+  shown/hidden with the rest of the panel's content, not always-on; promoting it to always-
+  visible later is a small, well-scoped follow-up if wanted.
+- **Main Menu "How to Play" screen** — `MainMenuController` gained a third
+  panel/button/back-button, mirroring the existing Settings pattern exactly. Built by
+  duplicating the Settings button/panel and stripping the Settings-specific children plus the
+  cloned `SettingsController` component (which would otherwise `NullReferenceException` on
+  `OnEnable` without its dropdown/toggle/button).
+
+Done via a throwaway script, verified by reading the regenerated scene/prefab files back. Per
+explicit instruction, no dedicated batchmode test pass — though the script's own run already
+required Unity to compile `MainMenuController.cs`'s change first.
+
+See ARCHITECTURE.md decisions log #52–61 for the full reasoning on each.
 
 **Modules with real, tested code — every one of them now wired into `Gameplay.unity` too:**
 Core (`GameManager`), Grid (`GridModel` + `FootprintCenterToWorld`), Entities
@@ -109,10 +126,10 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–025):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–026):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
-~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~.
+~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
@@ -173,11 +190,6 @@ order below is dependency-aware, not a hard requirement — pick freely.
       update/append to decision #37 when this lands rather than silently overwriting it.
     - Change one soldier (human suggests Soldier 2) to an **Archer** — ranged, uses the
       projectile visual above.
-14. **UI visual polish**:
-    - Banner header at the top of the Production Menu and Information Panel (per the human's
-      reference mockup) — **not** on the Game Board.
-    - Main Menu "How to Play"/"Controls" screen — a new screen alongside the existing Play/
-      Settings flow (`CaseGame.UI.MainMenu`), explaining basic controls.
 15. **Production Menu scroll fix** — dragging the scroll fast enough currently loses the
     top-of-list items (not the bottom ones); worked around by the human setting
     `ScrollRect.movementType` to `Clamped` directly in the scene (see ARCHITECTURE.md §4) instead
