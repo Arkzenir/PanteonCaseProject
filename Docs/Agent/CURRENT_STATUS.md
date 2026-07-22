@@ -7,35 +7,41 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 013 (`Placement`), 2026-07-22. Compile clean (C# and the new shader),
-**80/80 EditMode tests passing**.
+**Last report:** 014 (`UI.Production`), 2026-07-22. Compile clean,
+**96/96 EditMode tests passing** (80 prior + 16 new).
 
-**Pending on the human:** editor hookup for Report 013 — add a `VisualsGrayscale` child
-(SpriteRenderer, `M_SpriteGrayscaleGhost` material, same sprite as `Visuals`, inactive by
-default) and a `BuildingGhostView` component to `Building_Barracks.prefab`/
-`Building_PowerPlant.prefab`; create the `M_SpriteGrayscaleGhost` material from the new
-`SpriteGrayscaleGhost.shader`. Full steps in Report 013. Requirement 19 (Main Menu) remains
-the one fully-closed brief requirement; everything else in the checklist is still `[ ]`.
+**Pending on the human:** nothing blocking from Report 014 — the throwaway setup script did
+the scene/prefab/asset wiring itself and it was verified by reading the generated files back.
+Report 013's editor hookup (`VisualsGrayscale` child + `BuildingGhostView` on the building
+prefabs, `M_SpriteGrayscaleGhost` material) is still open if not already done by the human —
+check Report 013 if unsure. Requirement 19 (Main Menu) remains the one fully-closed brief
+requirement; everything else in the checklist is still `[ ]` (Report 014 doesn't fully close
+requirement 2 or 15 — the Production Menu itself works and is tested, but the brief's 3-area
+layout and the Info Panel don't exist yet, see ARCHITECTURE.md's Report 014 log entry).
 
 **Modules with real, tested code:** Core (`GameManager`), Grid, Entities (shared
-`GameEntityDefinition`/`GameEntityBase`), Combat, Buildings, Units (`SoldierBase`/`Soldier`/
+`GameEntityDefinition`/`GameEntityBase`), Combat, Buildings (now also `BuildingCatalog`/
+`BuildingCatalogEntry`/`BuildingCatalogEntryEventChannel`), Units (`SoldierBase`/`Soldier`/
 `UnitFactory` — note: 3 soldier *types* are `UnitDefinition` data, not 3 classes, see
-decisions log #26), Placement (`BuildingGhostView`/`PlacementController`), Events, Pooling,
-Pathfinding.
+decisions log #26), Placement (`BuildingGhostView`/`PlacementController` — now also
+subscribes to the produce-request channel), UI.Production (`ScrollRecycler`/
+`ProductionMenuItemView`/`ProductionMenuController`), Events, Pooling, Pathfinding.
 
-**Not yet built:** Selection, UI.Production, UI.Info, actual Gameplay scene assembly,
-draw-call/batching verification, Windows build export.
+**Not yet built:** Selection, UI.Info, actual Gameplay scene assembly, draw-call/batching
+verification, Windows build export.
 
 **Recommended next-feature order** (dependency-driven — each step only needs what's already
 shipped above it; full reasoning given in chat and the published "Development Dispatch"
 artifact on 2026-07-21, not otherwise saved in the repo):
 1. ~~Units~~ — done (Report 012).
-2. ~~Placement~~ — done (Report 013). Note: `PlacementController.Initialize(grid, factory)`
-   is still never called from a scene — that wiring is Gameplay scene assembly's job (step 6).
-3. **UI.Production** — infinite pooled scroll view; wires to Placement's entry point.
+2. ~~Placement~~ — done (Report 013).
+3. ~~UI.Production~~ — done (Report 014). Note: `PlacementController.Initialize(grid, factory)`
+   is still never called from a scene, so the Production Menu's "produce" click can't be
+   hand-tested end-to-end yet — that bootstrap wiring is Gameplay scene assembly's job (step 6).
 4. **Selection** — left-click select / right-click move-or-attack. Needs Units to exist first.
 5. **UI.Info** — Information Panel, listens for the selection event.
-6. **Gameplay scene assembly** — wire the brief's 3-area layout together end-to-end.
+6. **Gameplay scene assembly** — wire the brief's 3-area layout together end-to-end (also the
+   point at which `PlacementController` finally gets added to `Gameplay.unity` and initialized).
 7. **Draw-call/batching pass** — only measurable once real content exists to profile.
 8. **Windows build + `/final-report`**.
 
@@ -51,4 +57,6 @@ assets live under `Assets/_Project/ScriptableObjects/GameEntityDefs/<Category>/`
 `Settings/`; building/unit prefabs are a parent GameObject with child GameObjects per concern
 (`Visuals`, `Hitbox`, `SpawnPoint`, ...) — buildings under `Prefabs/Buildings/` named
 `Building_<Name>`, soldiers under `Prefabs/Units/` named `Soldier_<N>` (same `<Category>_<Name>`
-convention).
+convention). UI prefabs live under `Prefabs/UI/` with a plain name, no category prefix (e.g.
+`ProductionMenuItem.prefab`); root-level config/data SO assets (not entity defs) use
+`<Type>_Default.asset` at the `ScriptableObjects/` root (e.g. `BuildingCatalog_Default.asset`).

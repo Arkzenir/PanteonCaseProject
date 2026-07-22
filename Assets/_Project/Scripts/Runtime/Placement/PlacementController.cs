@@ -20,6 +20,7 @@ namespace CaseGame.Placement
     public class PlacementController : MonoBehaviour
     {
         [SerializeField] private Camera gameCamera;
+        [SerializeField] private BuildingCatalogEntryEventChannel produceRequestedChannel;
 
         private GridModel _grid;
         private BuildingFactory _factory;
@@ -38,6 +39,28 @@ namespace CaseGame.Placement
         {
             _grid = grid;
             _factory = factory;
+        }
+
+        private void OnEnable()
+        {
+            if (produceRequestedChannel != null)
+            {
+                produceRequestedChannel.Subscribe(HandleProduceRequested);
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (produceRequestedChannel != null)
+            {
+                produceRequestedChannel.Unsubscribe(HandleProduceRequested);
+            }
+        }
+
+        /// <summary>Responds to the Production Menu's "produce" click (<see cref="BuildingCatalogEntryEventChannel"/>) by starting placement of that entry — UI.Production and Placement stay decoupled, connected only via the shared channel asset.</summary>
+        private void HandleProduceRequested(BuildingCatalogEntry entry)
+        {
+            BeginPlacement(entry.Definition, entry.Prefab);
         }
 
         public void BeginPlacement(BuildingDefinition definition, BuildingBase prefab)

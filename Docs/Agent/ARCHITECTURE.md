@@ -23,15 +23,15 @@ other.
 | Core | `CaseGame.Core` | Bootstrapping, the one sanctioned Singleton (`GameManager`), scene/system lifecycle | Events |
 | Grid | `CaseGame.Grid` | Grid data model: cell size/bounds (fully designer-editable via a `GridDefinition` SO — no fixed pixel size, set once art is chosen), occupancy, world↔cell conversion, placement validity queries | Core |
 | Entities | `CaseGame.Entities` | `GameEntityDefinition` (abstract SO: name/sprite/footprint/maxHealth) and `GameEntityBase` (abstract MonoBehaviour: owns a `Health`, implements `IDamageable`, sprite assignment, death callback) — shared by Buildings and Units so neither duplicates this shape (see decisions log #22) | Combat |
-| Buildings | `CaseGame.Buildings` | `BuildingBase` (: `GameEntityBase`), `Barracks`, `PowerPlant`, `BuildingDefinition` (: `GameEntityDefinition`), `BuildingFactory` | Entities, Pooling, Units |
+| Buildings | `CaseGame.Buildings` | `BuildingBase` (: `GameEntityBase`), `Barracks`, `PowerPlant`, `BuildingDefinition` (: `GameEntityDefinition`), `BuildingFactory`; as of Report 014 also `BuildingCatalogEntry`/`BuildingCatalog` (the Production Menu's data source — a `Definition`+prefab pair per producible building) and `BuildingCatalogEntryEventChannel` (typed event channel carrying a "produce this" request — kept in this namespace since the payload is Buildings-domain data both Placement and UI.Production already depend on Buildings, see decisions log #32) | Entities, Pooling, Units, Events |
 | Units | `CaseGame.Units` | `SoldierBase` (: `GameEntityBase`, adds `MoveTo`/`TryAttack`), `Soldier` (the one concrete type — 3 soldier variants are `UnitDefinition` data, not 3 classes, see decisions log #26), `UnitDefinition` (: `GameEntityDefinition`), `UnitFactory` | Entities, Grid, Pathfinding, Combat |
 | Combat | `CaseGame.Combat` | `IDamageable`, `Health` (HP, damage, death via plain per-instance C# events — see decisions log #19) | — |
 | Pathfinding | `CaseGame.Pathfinding` | `AStarPathfinder`: static, tested 8-directional grid A* with corner-cutting prevention ("wander around buildings," GI-7/8). No request-queue/coroutine layer yet — added if a real caller (Units movement) shows it's needed | Grid |
-| Placement | `CaseGame.Placement` | `BuildingGhostView` (View: toggles a desaturated ghost silhouette, tinted green/red, vs. the real sprite — see decisions log #28) and `PlacementController` (Controller: mouse→cell, validity query, commit-to-grid) | Grid, Buildings |
+| Placement | `CaseGame.Placement` | `BuildingGhostView` (View: toggles a desaturated ghost silhouette, tinted green/red, vs. the real sprite — see decisions log #28) and `PlacementController` (Controller: mouse→cell, validity query, commit-to-grid, and — as of Report 014 — subscribes to `BuildingCatalogEntryEventChannel` to start placement when the Production Menu raises a "produce" request) | Grid, Buildings, Events |
 | Selection | `CaseGame.Selection` | Left-click select, right-click move/attack command interpretation, raises intent events | Units, Buildings, Events |
 | Pooling | `CaseGame.Pooling` | Generic `ObjectPool<T>` used by the scroll view and by frequently spawned/destroyed units/buildings | — |
 | Events | `CaseGame.Events` | Lightweight C# event channels (plain events and/or SO event channels) connecting the above without direct references | — |
-| UI.Production | `CaseGame.UI.Production` | Infinite, pooled scroll view listing producible buildings, iterated **generically off a `BuildingDefinition` list** (no per-type UI branches); "produce" triggers Factory + Placement | Pooling, Buildings, Events |
+| UI.Production | `CaseGame.UI.Production` | `ScrollRecycler` (plain C#: given item count/pool size/scroll offset, decides which data index each pooled slot shows and where — the actual "infinite, object-pooled scroll" math, tested independent of Unity UI), `ProductionMenuItemView` (View: one pooled, rebindable row), `ProductionMenuController` (Controller: owns the `PrefabPool<ProductionMenuItemView>`, applies `ScrollRecycler`'s decisions to `ScrollRect`). Iterates `BuildingCatalog` **generically** (no per-type UI branches); a row's "produce" click raises `BuildingCatalogEntryEventChannel` — Placement listens, so neither module references the other | Pooling, Buildings, Events |
 | UI.Info | `CaseGame.UI.Info` | Information Panel: shows selected building/unit image + producible-unit images, driven by each `BuildingDefinition`'s own `UnitDefinition` list | Events, Buildings, Units |
 | UI.MainMenu | `CaseGame.UI.MainMenu` | Main Menu screen: Play button → loads `Gameplay.unity` | Core |
 | UI.Settings | `CaseGame.UI.Settings` | Settings screen: resolution / display-mode selection, applied via `Screen.SetResolution` | Core |
@@ -70,24 +70,35 @@ updates, publishing/subscribing via Events rather than reaching into each other 
 - `Gameplay.unity` — the actual demo: Game Board (grid), Production Menu (UI), Information
   Panel (UI). Hierarchy uses top-level organizers per CONVENTIONS.md: `--- SYSTEMS ---`,
   `--- ENVIRONMENT ---` (grid/board), `--- GAMEPLAY ---` (spawned buildings/units container),
-  `--- UI ---` (Production Menu, Information Panel, Canvas).
+  `--- UI ---` (Production Menu, Information Panel, Canvas). As of Report 014, `--- UI ---`
+  exists with a `Canvas` (`ScaleWithScreenSize`, 1920×1080 reference), an `EventSystem`
+  (`InputSystemUIInputModule`), and the `ProductionMenu` scroll view
+  (`ProductionMenuController`, wired to `BuildingCatalog_Default.asset`); `--- SYSTEMS ---`
+  and `--- GAMEPLAY ---` don't exist yet — still Gameplay scene assembly's job.
 - Key prefabs (added as each feature lands), all under `Assets/_Project/Prefabs/`:
   `Buildings/Building_Barracks.prefab` + `Building_PowerPlant.prefab` (human-created after
   Report 009) — each a parent GameObject with `Visuals` (SpriteRenderer), `Hitbox` (collider,
   for future selection), and (Barracks only) `SpawnPoint` as children. `Units/Soldier_1.prefab`,
   `Soldier_2.prefab`, `Soldier_3.prefab` (human-created after Report 012, same `<Category>_<Name>`
   naming as the buildings) — same `Visuals`/`Hitbox` child structure, `Soldier` component on
-  the root. All per CONVENTIONS.md's per-prefab grouping convention. Still to come: a Production Menu
-  list-item prefab (pooled), ghost/preview prefab for placement.
-- SO definition assets live under `Assets/_Project/ScriptableObjects/`: `GridDef_Default.asset`
-  at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` + `BuildingDef_PowerPlant.asset`,
-  and `GameEntityDefs/Units/UnitDef_Soldier1.asset` + `UnitDef_Soldier2.asset` +
-  `UnitDef_Soldier3.asset` — human's own organization, renamed from an earlier
-  `ScriptableObjects/Units/{Buildings,Troops}/` pass to `GameEntityDefs/` once the
+  the root. `UI/ProductionMenuItem.prefab` (Report 014, agent-created via throwaway script) —
+  `Icon` (Image) + `Name` (TMP text) children, `Button` + `ProductionMenuItemView` on the root;
+  no `<Category>_` prefix since there's no family of named variants to disambiguate, unlike the
+  building/unit prefabs. All per CONVENTIONS.md's per-prefab grouping convention. Still to
+  come: ghost/preview prefab for placement (reuses the building prefabs themselves, see
+  decisions log #29 — nothing separate needed).
+- SO definition/config assets live under `Assets/_Project/ScriptableObjects/`: `GridDef_Default.asset`,
+  `BuildingCatalog_Default.asset`, and `BuildingCatalogEntryEvent_Default.asset` (both added
+  Report 014) at the root, `GameEntityDefs/Buildings/BuildingDef_Barracks.asset` +
+  `BuildingDef_PowerPlant.asset`, and `GameEntityDefs/Units/UnitDef_Soldier1.asset` +
+  `UnitDef_Soldier2.asset` + `UnitDef_Soldier3.asset` — human's own organization, renamed from
+  an earlier `ScriptableObjects/Units/{Buildings,Troops}/` pass to `GameEntityDefs/` once the
   `GameEntityDefinition` shared base landed (Report 010), which is a more accurate name for
-  what the folder actually holds.
+  what the folder actually holds. `GameEntityDefs/` is reserved for `GameEntityDefinition`
+  subclasses specifically — `BuildingCatalog`/the event channel are config/data assets, not
+  entity definitions, so they stay at the SO root alongside `GridDef_Default.asset`.
 - This section is updated feature-by-feature as prefabs/assets are actually created — treat
-  the above as current inventory as of Report 012, and whatever's still listed as "to come" as
+  the above as current inventory as of Report 014, and whatever's still listed as "to come" as
   the plan, not yet built.
 
 ## 5. Brief-mandated requirements checklist
@@ -199,6 +210,31 @@ landed that these requirements will build on.
   its pool (new `BuildingFactory.Release`). Human-directed design: the grayscale-then-tint
   technique (not tinting the full-color sprite directly) — see decisions log #28.
 
+- Report 014 (`Docs/Reports/014_ui-production.md`): landed the `UI.Production` module —
+  the Production Menu's infinite, pooled scroll view (UX brief: "Infinite Scrollview — Object
+  Pooling"). `ScrollRecycler` (plain C#, tested) computes which `BuildingCatalog` index each of
+  a small, fixed-size pool of `ProductionMenuItemView` rows should currently show as the view
+  scrolls — the pool never grows with the catalog size, which is what makes the list genuinely
+  "infinite"-capable rather than one row per entry. A row's "produce" click raises the new
+  `BuildingCatalogEntryEventChannel` (the project's first concrete `GameEventChannel<T>`
+  payload channel, foreshadowed as a foundation-only placeholder back in Report 006);
+  `PlacementController` now subscribes to it and calls its existing `BeginPlacement`, so
+  UI.Production and Placement stay fully decoupled — connected only via the shared channel
+  asset. Also added `BuildingCatalogEntry`/`BuildingCatalog` (`CaseGame.Buildings`) as the
+  Production Menu's data source — a designer adds a producible building by adding one entry to
+  this asset, no code change (requirement 2's modularity mandate). A throwaway editor script
+  (`Scripts/Editor/Setup/Temp/ProductionMenuSetup.cs`, deleted same turn per CLAUDE.md's editor
+  script policy) built `Gameplay.unity`'s first UI: a `--- UI ---` organizer with a Canvas
+  (`ScaleWithScreenSize`, 1920×1080 reference — same settings as `MainMenu.unity`'s, for
+  GI-13 consistency) and `EventSystem`/`InputSystemUIInputModule`, the pooled scroll view
+  itself, and the `ProductionMenuItem` prefab (`Prefabs/UI/`) — populated the real
+  `BuildingCatalog_Default.asset` with the existing Barracks/Power Plant definitions and
+  prefabs. Scope boundary: `PlacementController` is *not yet* added to `Gameplay.unity` (it has
+  nothing to be initialized with — no `GridModel`/`BuildingFactory` bootstrap exists in the
+  scene yet), so the Production Menu's "produce" click can't be hand-tested end-to-end until
+  Gameplay scene assembly (a later roadmap item) wires that up; this feature's own logic is
+  fully unit-tested independent of that.
+
 - [ ] 1. Unity 2021 LTS, 2D, Windows build
 - [ ] 2. Production Menu: Barracks, Power Plant, Soldier Units (+ extensible for more)
 - [ ] 3. Building placement with invalid-area feedback; name/image/dimensions
@@ -253,3 +289,8 @@ landed that these requirements will build on.
 | 28 | Placement ghost is desaturated first (custom `Art/Shaders/SpriteGrayscaleGhost.shader`, luminance per-pixel), *then* tinted via `SpriteRenderer.color`, rather than tinting the building's full-color sprite directly (Report 013) | Human-directed. A plain color multiply over the original full-color sprite would blend with whatever hues are already in the art (e.g. a blue banner region would go muddy dark-green instead of reading as clean green) — desaturating first is what makes the green/red read as an unambiguous valid/invalid signal (GI-3's "user must be visually informed when the location is invalid"). Hand-authored HLSL, not Shader Graph, to avoid any version-availability uncertainty around URP's 2D Shader Graph target on this pinned version (golden rule 7); verified by batchmode import producing no shader compile errors | Tinting the full-color sprite directly (simpler, but muddy/ambiguous); a Shader Graph 2D Unlit target (unverified availability on this exact URP/Editor version, unnecessary risk for a ~25-line shader); pre-baking desaturated texture variants as separate art assets (extra asset-authoring burden per building type, redundant with what a shader does automatically for any sprite) |
 | 29 | The ghost preview and the final placed building are the *same* pooled instance — `BuildingGhostView` toggles `Visuals`/`VisualsGrayscale`/`Hitbox` active state on one object — rather than a separate temporary ghost object swapped for a freshly-created real one on commit (Report 013) | Human-directed. Avoids managing two objects with two lifecycles for what is really one placement lifecycle; reuses the existing pooled `BuildingFactory.Create` path unchanged — cancelling just returns the same instance to its pool (new `BuildingFactory.Release`) instead of needing separate ghost-cleanup logic | A disposable non-pooled ghost prefab instantiated fresh each placement attempt and destroyed on cancel/commit — works, but duplicates object-management logic and doesn't reuse pooling for the ghost phase |
 | 30 | `PlacementController`'s decision logic (`BeginPlacement`/`UpdateGhostAt(cell)`/`TryCommitAt(cell)`/`CancelPlacement`) is exposed as plain methods taking an explicit cell, with `Update()` reduced to a 5-line mouse-reading orchestrator that calls them (Report 013) | Keeps the actual placement logic directly testable (no Mouse/Update-loop dependency in the tests) while `Update()` stays humble per CONVENTIONS.md — the same "extract the testable decision, keep the MonoBehaviour thin" pattern used throughout the project | Putting mouse-reading and validity/commit logic together inside `Update()` — untestable without simulating Input System device state and frame ticks |
+| 31 | The Production Menu's recycling decision (which catalog index each pooled row slot shows, and at what Y position, given a scroll offset) is extracted into `ScrollRecycler` — a static, plain-C# class with no `ScrollRect`/UI dependency (Report 014) | Same "extract the testable decision" pattern as #30, applied to the trickiest new logic in the project so far. `ScrollRect`'s exact `anchoredPosition` sign convention isn't something the agent can verify without an interactive Play Mode session, but the *recycling math itself* (given a scroll offset, which items are visible) is pure and fully testable independent of that uncertainty | Writing the recycling logic directly inside `ProductionMenuController`'s `ScrollRect.onValueChanged` callback — untestable without a live `ScrollRect`/Canvas, and conflates "what Unity's scroll callback reports" with "what should be visible", the same two concerns #30 already separated for Placement |
+| 32 | `BuildingCatalogEntry` (struct: `BuildingDefinition` + prefab pair), `BuildingCatalog` (SO listing them), and `BuildingCatalogEntryEventChannel` (typed event channel carrying one) all live in `CaseGame.Buildings`, not `CaseGame.UI.Production` (Report 014) | This is Buildings-domain data — "a building type and the prefab to spawn for it" — with nothing UI-specific about it. Both consumers (`UI.Production`, which lists them, and `Placement`, which subscribes to the channel) already depend on `Buildings`, so keeping the type there avoids introducing a *new* cross-module dependency in either direction | Defining these types in `UI.Production` (would make `Placement` depend on `UI.Production` just to receive its event payload type — backwards, since Placement is the more foundational module) |
+| 33 | `PlacementController` subscribes directly to `BuildingCatalogEntryEventChannel` in its own `OnEnable`/`OnDisable` and forwards to its existing `BeginPlacement` (Report 014), rather than a separate bridge/listener component | "Start placing what was requested" is squarely `PlacementController`'s own responsibility — no different in kind from being called directly, just triggered by an event instead. This is also the project's *first* concrete `GameEventChannel<T>` payload channel, landing exactly when decision #17 said one would: alongside the feature that first needs it | A generic bridge component (`GameEventListener`-style) forwarding to a `UnityEvent` — that pattern exists for wiring a *designer-configured* response in the Inspector to a parameterless `GameEvent`; here the response (`BeginPlacement(entry.Definition, entry.Prefab)`) is fixed, non-designer-facing logic, so a direct subscription is simpler and just as decoupled |
+| 34 | `ProductionMenuController.poolSize` is a fixed `[SerializeField] int` (default 8) rather than computed at runtime from the `ScrollRect` viewport's `RectTransform.rect.height` (Report 014) | Reading `RectTransform.rect` reliably requires a layout pass to have already run, which isn't guaranteed at `Awake`/`Start` for a freshly-loaded UI hierarchy — a real Unity UI timing hazard the agent can't fully verify without an interactive session. A designer-set pool size sidesteps that fragility entirely; the brief's actual data set (2 buildings today, a handful more at most) makes "exactly enough slots for the current viewport" an unnecessary optimization anyway — the point being demonstrated is the pooling/recycling *technique*, not squeezing out the last unused row view | Computing `poolSize` from `scrollRect.viewport.rect.height / itemHeight` at `Awake` — more "automatically correct," but fragile to a real Unity layout-timing gotcha with no way for the agent to verify it here; flagged for the human to double-check scroll behavior visually once in the Editor |
+| 35 | Production Menu UI (`--- UI ---` organizer, `Canvas`/`EventSystem`, the `ProductionMenu` scroll view, `ProductionMenuItem` prefab) was added to `Gameplay.unity` as part of *this* feature, but `PlacementController` was deliberately *not* added to the scene (Report 014) | The Production Menu's own UI is this feature's actual scope — same as how Main Menu's feature built its own scene UI. `PlacementController` still has nothing to be initialized with (`Initialize(grid, factory)` needs a live `GridModel`/`BuildingFactory`, and no scene bootstrap wiring those exists yet) — adding it now would mean either leaving it broken or building bootstrap plumbing that's `Gameplay scene assembly`'s job, not this feature's | Also wiring `PlacementController` + a minimal bootstrap now, to make the whole produce→ghost→place loop hand-testable today — would have front-run Gameplay scene assembly's actual scope (Info Panel, camera framing, full 3-area layout) for the sake of one extra hand-test, when this feature's logic is already fully covered by automated tests |
