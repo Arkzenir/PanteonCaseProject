@@ -7,8 +7,8 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 018 (`Draw-call/batching architecture`), 2026-07-22. Compile clean (no C# code
-touched — asset/settings only), **127/127 EditMode tests passing** (unchanged from Report 017).
+**Last report:** 019 (`Camera controls`), 2026-07-22. Compile clean,
+**134/134 EditMode tests passing** (127 prior + 7 new).
 
 **Human hand-tested Report 017 since it landed: "purely mechanically, the system works."**
 Adjustments were made directly in-Editor (not captured as a report — no code/doc changes came
@@ -62,26 +62,23 @@ Combat, Buildings (`BuildingCatalog`/`BuildingCatalogEntry`/`BuildingCatalogEntr
 `PlacementController`), UI.Production (`ScrollRecycler`/`ProductionMenuItemView`/
 `ProductionMenuController`), Selection (`SelectionController`), UI.Info (`InfoPanelController`/
 `ProducibleUnitIconView`, now clickable), **Gameplay** (new module, `GameplayBootstrap` — the
-scene's composition root), Events, Pooling, Pathfinding.
+scene's composition root), **CameraControl** (new module, `CameraController` — pan/zoom, Report
+019), Events, Pooling, Pathfinding.
 
-**Not yet built:** the polish/mechanical-adjustment backlog below (catalogued 2026-07-22 from the
-human's post-hand-test notes, not yet started), draw-call/batching *numeric verification*
-(architecture is done, see above), Windows build export, `/final-report`.
+**Not yet built:** the rest of the polish/mechanical-adjustment backlog below (items 9 onward —
+catalogued 2026-07-22 from the human's post-hand-test notes), draw-call/batching *numeric
+verification* (architecture is done), Windows build export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–018):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
-~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~.
+*Done (Reports 012–019):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
 order below is dependency-aware, not a hard requirement — pick freely.
 
-8. **Camera controls** — middle-mouse-drag pan, scroll-wheel zoom. Standalone, no dependencies;
-   good first pick. Touches: nothing existing, purely additive (likely its own small
-   `CameraController` in `CaseGame.Gameplay` or `CaseGame.Core`, or added to `GameplayBootstrap`'s
-   scene — human's call at implementation time).
 9. **Placement/Grid architecture fixes** — do before the two items below, since both build on
    its corrected footprint math:
    - Building footprint origin: currently bottom-left-anchored (`GridModel.CellToWorld`/
@@ -149,36 +146,54 @@ order below is dependency-aware, not a hard requirement — pick freely.
     of the Unity-default `Elastic`. Decide at implementation time whether `Clamped` is the
     permanent fix or whether `ScrollRecycler`/`ProductionMenuController`'s own recycling math
     (decisions #31/#34) has a real bug worth fixing instead.
-16. **Environment/terrain visuals** — likely the largest single item in this backlog:
+16. **Grid line rendering (runtime, data-driven, toggleable)** — human-added 2026-07-22.
+    `GridView` currently draws lines only via `OnDrawGizmos` — Scene-view/editor-only, never
+    visible in Play Mode or a build. Replace with an actual runtime-rendered grid (`LineRenderer`
+    or equivalent), with four specific requirements:
+    - **Toggleable on/off**, via an API call/event *and* optionally a UI button — needs a public
+      method/property on `GridView` (or a new small `GridVisualController`) that something can
+      call/bind to; where the UI button lives (Settings? an in-scene toggle?) is open, human's
+      call at implementation time.
+    - **Data-driven visuals** (color, line thickness, etc.) — extend `GridDefinition` with new
+      fields, same pattern as the existing `cellSize`/`columns`/`rows`/`originWorldPosition`
+      (decision #5: nothing about the grid is hardcoded).
+    - **Renders behind everything else** — sorting layer/order on the line-rendering component
+      set so buildings/units/ghosts are never occluded by grid lines.
+    - **Live-updates in Edit Mode** as `GridDefinition` values change in the Inspector, without
+      entering Play Mode — real implementation challenge: `GridView.Awake()` (where `GridModel`
+      is currently built) doesn't fire in Edit Mode at all (the same Awake-doesn't-fire-outside-
+      Play-Mode gotcha `ENVIRONMENT.md`/decisions log already document elsewhere). Likely needs
+      `[ExecuteAlways]` plus rebuilding the rendered lines from `OnValidate`/a change-driven hook,
+      not relying on `Awake`.
+17. **Environment/terrain visuals** — likely the largest single item in this backlog:
     - Tilemap terrain backdrop so the ground isn't empty/skybox behind the grid. Optionally tie
       specific tile types (forest, mountain) to *inherent* grid occupancy — i.e. some cells are
       permanently unplaceable/unwalkable because of the terrain tile there, not just because a
       building was placed. If pursued, this interacts directly with item 9's `GridModel`
       occupancy-extension work above — worth sequencing after it, or designing both together.
     - Auto-generated/placed border tiles around the grid's edges (e.g. forest/mountain), so the
-      board's boundary reads visually, not just via the (currently gizmo-only, not even
-      runtime-visible) grid lines.
+      board's boundary reads visually, not just via the grid lines (item 16, above).
     - Once terrain art exists, add it to `SpriteAtlas_Gameplay.spriteatlas` (Report 018) —
       folder-level packing already covers *building/unit* art automatically; terrain art will
       likely live in a different source folder and need its own packable entry added.
-17. **Unit animations** — idle/move/attack, ideally sequenced after item 11 (movement timing)
+18. **Unit animations** — idle/move/attack, ideally sequenced after item 11 (movement timing)
     and item 12 (ranged combat) land, so animation trigger points match final movement/attack
     logic rather than needing rework. The Tiny Swords pack already ships full Animator
     Controllers + clips for these unit types (noticed during Report 018's audit) — this may be
     mostly wiring an `Animator`/`AnimatorController` onto the soldier prefabs and triggering
     states from `SoldierBase`, not building animation from scratch.
-18. **Death/destruction particle effects** — a burst/VFX on unit death and building destruction.
+19. **Death/destruction particle effects** — a burst/VFX on unit death and building destruction.
     Small and low-dependency: both already funnel through the same shared `Health.Died` event
     (`GameEntityBase`, decisions log #19), so this is likely one hookup point (a particle-prefab
     spawn on death, played *before* — or independent of — the instance returning to its pool),
     not two separate systems for units vs. buildings. Human-added 2026-07-22.
 
 *After the backlog above:*
-19. **Draw-call/batching verification** — once visual polish (including the terrain/tilemap
+20. **Draw-call/batching verification** — once visual polish (including the terrain/tilemap
     work) is far enough along that the numbers reflect final content: enter Play Mode, open the
     Stats window (or Frame Debugger for exact SetPass call attribution), confirm &lt;20, and adjust
     if not.
-20. **Windows build + `/final-report`**.
+21. **Windows build + `/final-report`**.
 
 **Known environment gotchas** (full detail in `ENVIRONMENT.md`): `Awake`/`OnEnable` don't
 reliably fire on `AddComponent`-created objects in this machine's batchmode EditMode test
