@@ -30,6 +30,12 @@ namespace CaseGame.Buildings
             return instance;
         }
 
+        /// <summary>Manually returns an instance to its pool without it having "died" — e.g. Placement cancelling a ghost that was never committed.</summary>
+        public void Release(BuildingBase prefab, BuildingBase instance)
+        {
+            GetOrCreatePool(prefab).Release(instance);
+        }
+
         private PrefabPool<BuildingBase> GetOrCreatePool(BuildingBase prefab)
         {
             if (!_pools.TryGetValue(prefab, out var pool))

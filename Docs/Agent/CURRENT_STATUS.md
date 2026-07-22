@@ -7,26 +7,31 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 012 (`Units`), 2026-07-21. Compile clean, **70/70 EditMode tests passing**.
+**Last report:** 013 (`Placement`), 2026-07-22. Compile clean (C# and the new shader),
+**80/80 EditMode tests passing**.
 
-**Pending on the human:** nothing outstanding — Report 012's hand-wiring is done (3
-`UnitDef_Soldier{1,2,3}` assets + `Soldier1/2/3.prefab`, sprites still unassigned pending an
-art pick, which is fine to leave for later). Requirement 19 (Main Menu) remains the one
-fully-closed brief requirement; everything else in the checklist is still `[ ]`.
+**Pending on the human:** editor hookup for Report 013 — add a `VisualsGrayscale` child
+(SpriteRenderer, `M_SpriteGrayscaleGhost` material, same sprite as `Visuals`, inactive by
+default) and a `BuildingGhostView` component to `Building_Barracks.prefab`/
+`Building_PowerPlant.prefab`; create the `M_SpriteGrayscaleGhost` material from the new
+`SpriteGrayscaleGhost.shader`. Full steps in Report 013. Requirement 19 (Main Menu) remains
+the one fully-closed brief requirement; everything else in the checklist is still `[ ]`.
 
 **Modules with real, tested code:** Core (`GameManager`), Grid, Entities (shared
 `GameEntityDefinition`/`GameEntityBase`), Combat, Buildings, Units (`SoldierBase`/`Soldier`/
 `UnitFactory` — note: 3 soldier *types* are `UnitDefinition` data, not 3 classes, see
-decisions log #26), Events, Pooling, Pathfinding.
+decisions log #26), Placement (`BuildingGhostView`/`PlacementController`), Events, Pooling,
+Pathfinding.
 
-**Not yet built:** Placement, Selection, UI.Production, UI.Info, actual Gameplay scene
-assembly, draw-call/batching verification, Windows build export.
+**Not yet built:** Selection, UI.Production, UI.Info, actual Gameplay scene assembly,
+draw-call/batching verification, Windows build export.
 
 **Recommended next-feature order** (dependency-driven — each step only needs what's already
 shipped above it; full reasoning given in chat and the published "Development Dispatch"
 artifact on 2026-07-21, not otherwise saved in the repo):
 1. ~~Units~~ — done (Report 012).
-2. **Placement** — ghost preview, red/valid feedback, commit-to-grid. Only needs Grid + Buildings.
+2. ~~Placement~~ — done (Report 013). Note: `PlacementController.Initialize(grid, factory)`
+   is still never called from a scene — that wiring is Gameplay scene assembly's job (step 6).
 3. **UI.Production** — infinite pooled scroll view; wires to Placement's entry point.
 4. **Selection** — left-click select / right-click move-or-attack. Needs Units to exist first.
 5. **UI.Info** — Information Panel, listens for the selection event.
