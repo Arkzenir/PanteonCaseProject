@@ -17,6 +17,8 @@ namespace CaseGame.Entities
     {
         [SerializeField] private SpriteRenderer spriteRenderer;
         [SerializeField] private SpriteRenderer outlineRenderer;
+        [SerializeField] private ParticleSystem damageEffect;
+        [SerializeField] private ParticleSystem deathEffectPrefab;
 
         private Health _health;
         private Action _onDied;
@@ -32,6 +34,7 @@ namespace CaseGame.Entities
             _onDied = onDied;
             _health = new Health(definition.MaxHealth);
             _health.Died += HandleDied;
+            _health.Damaged += HandleDamaged;
 
             if (spriteRenderer != null)
             {
@@ -93,8 +96,35 @@ namespace CaseGame.Entities
             return grid.WorldToCell(transform.position);
         }
 
+        /// <summary>Replays the (permanently-owned, never-destroyed) damage-taken burst on every non-fatal hit — a plain child <see cref="ParticleSystem"/>, not pooled/spawned, since it survives this instance's entire pooled lifetime unlike <see cref="deathEffectPrefab"/> below.</summary>
+        private void HandleDamaged(int amount)
+        {
+            if (damageEffect != null)
+            {
+                damageEffect.Play();
+            }
+        }
+
+        /// <summary>
+        /// Spawns a fresh, independent copy of <see cref="deathEffectPrefab"/> at this instance's
+        /// position <em>before</em> the pooling callback below runs. This can't reuse a permanent
+        /// child the way <see cref="HandleDamaged"/> does: <c>PrefabPool&lt;T&gt;.Release</c>
+        /// (triggered by <see cref="_onDied"/>) deactivates this entire GameObject immediately, which
+        /// would cut off a child particle before it rendered a single frame. The spawned copy is
+        /// parented under this instance's own <c>transform.parent</c> (the same Buildings/Units
+        /// container it already lives in, avoiding a loose root object) and cleans itself up via the
+        /// prefab's own Particle System "Stop Action = Destroy" — no pooling needed for a
+        /// once-per-lifetime event, unlike the sustained-fire case <see cref="Units.ProjectileFactory"/>
+        /// pools.
+        /// </summary>
         private void HandleDied()
         {
+            if (deathEffectPrefab != null)
+            {
+                var effect = Instantiate(deathEffectPrefab, transform.position, Quaternion.identity, transform.parent);
+                effect.Play();
+            }
+
             _onDied?.Invoke();
             OnEntityDied();
         }

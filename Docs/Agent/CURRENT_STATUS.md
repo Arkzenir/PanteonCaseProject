@@ -7,7 +7,20 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**Last report:** 038 (`UI pack-art reskin`), 2026-07-23 — human-requested rework of every plain
+**Last report:** 039 (`Damage/death particle effects`), 2026-07-23 — backlog item 19, extended
+per human request to also cover non-fatal damage (not just death/destruction). `GameEntityBase`
+now subscribes to `Health.Damaged` alongside its existing `Health.Died` subscription. Two
+deliberately different implementation shapes: a permanent child `ParticleSystem` (`damageEffect`,
+just `.Play()`'d, safe across this pooled instance's whole lifetime) for non-fatal hits, vs. a
+prefab-asset reference (`deathEffectPrefab`) freshly `Instantiate()`d at death — required because
+`PrefabPool<T>.Release` deactivates the entire entity GameObject the instant death fires, which
+would cut off a child particle mid-burst. Both use real 8-frame Tiny Swords `Particle FX`
+spritesheets (`Dust_01`/`Explosion_01`) via the actual Unity Particle System's Texture Sheet
+Animation module, not a static tinted dot. New `Prefabs/Effects/{DamageEffect,DeathEffect}.prefab`
++ `Art/Materials/M_Particle{Damage,DeathExplosion}.mat`. 232/232 EditMode tests passing, 0 compile
+errors. See ARCHITECTURE.md decisions log #76.
+
+**Report 038 (`UI pack-art reskin`), 2026-07-23** — human-requested rework of every plain
 flat-color UI `Image` (Main Menu family, Production Menu, Information Panel) into Tiny Swords "UI
 Elements" pack art: `SpecialPaper.png` for Main-Menu-family panel backgrounds, `BigBlueButton_Regular.png`
 for their buttons, `RegularPaper.png` for the two gameplay HUD panels, `Banner.png` for both panels'
@@ -306,7 +319,7 @@ export, `/final-report`.
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–037):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
+*Done (Reports 012–039):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
 ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
@@ -314,18 +327,14 @@ export, `/final-report`.
 ~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~,
 ~~Procedural island tilemap generation~~, ~~Unit animations~~,
 ~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~,
-~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~, ~~UI pack-art reskin~~.
+~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~, ~~UI pack-art reskin~~,
+~~Damage/death particle effects~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
 human's original presentation order (they explicitly said regrouping was fine). Suggested
-order below is dependency-aware, not a hard requirement — pick freely.
-
-19. **Death/destruction particle effects** — a burst/VFX on unit death and building destruction.
-    Small and low-dependency: both already funnel through the same shared `Health.Died` event
-    (`GameEntityBase`, decisions log #19), so this is likely one hookup point (a particle-prefab
-    spawn on death, played *before* — or independent of — the instance returning to its pool),
-    not two separate systems for units vs. buildings. Human-added 2026-07-22.
+order below is dependency-aware, not a hard requirement — pick freely. **Empty** as of Report 039
+— item 19 (the last remaining entry) is done.
 
 *After the backlog above:*
 20. **Draw-call/batching verification** — once visual polish (including the terrain/tilemap
