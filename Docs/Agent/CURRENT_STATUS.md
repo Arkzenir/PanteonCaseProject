@@ -7,75 +7,34 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
-**BRANCH SPLIT, 2026-07-23 — read this first if you're not sure which branch you're on.**
-Three branches now exist, all forked from the same point (this exact commit, docs identical
-across all three as of this note):
-- **`main`** — frozen. No further work here until the human picks a final direction below.
-- **`VisualPolish`** — the fully-polished build exactly as it stands through Report 039 plus the
-  draw-call fixes below (`Mask`→`RectMask2D`, HDR/Shadows off). Human-measured: right at, or just
-  slightly over, 20 SetPass calls under heavy combat (several units attacking multiple buildings
-  at once). This branch stays as-is — no more cuts.
-- **`Optimisation`** — will aggressively remove/simplify visual-polish features specifically to
-  get comfortably under 20 with real headroom: candidates named so far are replacing the Tilemap
-  terrain with a plain ground plane, removing the particle effects (Report 039) entirely, and
-  replacing the `Outline` selection shader with a simple marker sprite (a chevron from the UI
-  atlas, or similar). Each removal should land as its own feature turn (implement/verify/report),
-  same as everything else.
+**BRANCH SPLIT — resolved, 2026-07-23.** *(Historical record below; only `main` matters now.)*
+Three branches were forked from the same point to A/B-test how far visual polish could go against
+GI-12's <20 SetPass budget: `main` (frozen during the split), `VisualPolish` (fully-polished build,
+measured right at/just over 20 SetPass under heavy combat — kept as a reference point, no further
+work), and `Optimisation` (aggressive draw-call cuts). `Optimisation`'s Tilemap→baked-texture
+terrain replacement (Report 040, below) got the real number **under 10 SetPass/draw calls at
+idle**, comfortably clear of budget — chosen as the final direction. `Optimisation` was merged
+into `main` (merge commit `9d13b1a`) and pushed to `origin/main`; **`main` now has everything.**
+`VisualPolish`/`Optimisation` branches still exist on the remote as historical reference but are
+no longer active work targets. See ARCHITECTURE.md decisions log #77 for the full split reasoning.
 
-Plan: measure both once `Optimisation`'s cuts are in, compare against the brief's evaluation
-criteria, then merge whichever (or a blend) into `main` for the final build. See ARCHITECTURE.md
-decisions log #77 for the full reasoning. **If you're picking up a fresh/compacted session, check
-`git branch` before assuming which of these three you're working in.**
+**Backlog item 20 (draw-call/batching verification) — DONE, 2026-07-23.** Final measured result on
+`main`: **under 10 SetPass/draw calls at idle**, well inside GI-12's <20 budget (started at 24
+idle / 28 heavy-combat before this pass). Resolved via Report 040's Tilemap→baked-texture terrain
+replacement (`TerrainCompositor`, `CaseGame.Environment`) — see decisions log #78/#79 for the full
+root-cause/fix/measurement trail, and Report 040 §6 for why a first-loaded-frame ~25-SetPass spike
+(the bake camera's own one-time render, before the source Tilemaps get hidden) was deliberately
+left as-is rather than engineered away, with the reasoning for why. 238/238 EditMode tests
+passing, 0 compile errors, confirmed directly on `main` post-merge.
 
-**`Optimisation` branch note, 2026-07-23:** an earlier Outline→SelectionMarker cut (previously
-numbered Report 040) was reverted — human decided it "amounted to nothing" — the branch was reset
-with `git reset --hard` back to the branch-split commit and force-pushed. Report numbering
-restarted from 040 for the next actual cut (the Tilemap→baked-texture terrain replacement,
-below) — the selection-marker cut is not currently landed on this branch.
+*Investigation history leading to the fix (kept for the reasoning trail):*
 
-**Last report (`Optimisation` branch only): 040 (`Tilemap terrain → single baked quad`), 2026-07-23**
-— human A/B-tested disabling the `Terrain` GameObject (all 3 Tilemaps) entirely in favor of a
-plain placeholder rectangle sprite and measured SetPass/draw calls roughly **halving** in active
-combat — confirmed root cause (ARCHITECTURE.md decisions log #78): all 3 Tilemaps already share
-the identical material entities use (`Sprite-Lit-Default`), but `TilemapRenderer`'s rendering path
-can't join the SRP Batcher regardless, and further splits into 32×32-cell chunks (this grid's
-painted area, 80×72 world units, spans several). Fix: `IslandTerrainView`/`IslandTilemapLayout`
-keep procedurally generating the island for any grid size exactly as before, but
-`TerrainCompositor` (new, `CaseGame.Environment`) now bakes all 3 Tilemap layers into one texture
-on a single `SpriteRenderer` quad (`BakedTerrain`, sorting order -2000) at `Gameplay.unity`'s
-load, via a dedicated orthographic bake camera + `RenderTexture`, then hides the source Tilemaps
-— full tile-art fidelity kept, not downgraded to a flat color. Bake framing reuses a new pure
-`TerrainBounds.Compute` (`CaseGame.Grid`, extracted from `GameplayBootstrap`'s previous inline
-calc, also now used for the camera pan/zoom clamp) so the two can never drift apart; bake
-resolution (`TerrainBakeResolution`) preserves the tileset's native 64px/unit density up to a
-4096px ceiling, scaling down uniformly only if a larger grid would exceed it. 238/238 EditMode
-tests passing (232 + 6 new, both pure helpers directly tested), 0 compile errors. One open,
-deliberately-deferred item: the isolated bake-camera culling layer is left unnamed (raw index 8)
-since naming it needs a `ProjectSettings/TagManager.asset` edit, gated behind explicit approval.
+*Measurements at the start of this investigation* (`SetPass Calls` from the Profiler Rendering
+module, the literal GI-12 metric — Frame Debugger step counts undercount this since some pipeline
+operations cost a SetPass without a corresponding "batch"): idle started at 24, heavy combat (3
+archers + 2 buildings + 2 particles firing) started at 28.
 
-**Human follow-up (same day):** first hand-test showed a blank bake (no island/water at all) —
-root-caused and fixed same-day: the bake camera's Z position was never moved off the Tilemaps'
-own Z=0 plane, so it captured nothing (decisions log #79). Re-tested after the fix: terrain bakes
-and displays correctly, Profiler confirms **under 10 SetPass/draw calls at idle** — comfortably
-clear of GI-12's <20 budget. One expected, non-blocking observation: a one-time ~25-SetPass spike
-on the very first loaded frame (the bake camera's own render of the still-live, not-yet-hidden
-Tilemaps landing in that one frame's tally) — inherent to a synchronous one-shot bake, happens
-once before the Production Menu is even interactive, doesn't recur, not a GI-12 concern (see
-decisions log #79 for the full reasoning on why this is fine as-is). 3 ways to suppress/smooth it
-were discussed and explicitly declined by the human — see decisions log #79's alternatives-rejected
-column and Report 040 §6: in a real (non-evaluation) production scenario, this exact cost is what
-a loading screen/transition exists to absorb (this project has none, out of scope).
-
-**In progress — backlog item 20 (draw-call/batching verification), 2026-07-23:** human-driven
-Profiler/Frame Debugger investigation into GI-12's <20 SetPass budget, ahead of a feature turn to
-implement the remaining items. No code changed yet this pass except what's noted as "done" below.
-
-*Measurements so far* (`SetPass Calls` from the Profiler Rendering module, the literal GI-12
-metric — Frame Debugger step counts undercount this since some pipeline operations cost a SetPass
-without a corresponding "batch"): idle started at 24, heavy combat (3 archers + 2 buildings + 2
-particles firing) started at 28.
-
-*Done already (human, directly in-editor, not yet in a report):*
+*Done along the way (human, directly in-editor, on the now-merged `Optimisation` branch):*
 - `ProductionMenu`'s Viewport: `Mask` → `RectMask2D` (removes stencil push/pop; also let
   previously-mask-separated draws merge, since `Mask`'s stencil operations were a hard SRP-batch
   boundary — bigger win than the stencil draws alone would suggest). Idle 24 → 16.
@@ -136,7 +95,7 @@ technique — SRP Batcher — and GI-12 itself names "batching and GPU instancin
 rewrite, as the expected approach; a custom pipeline would be large, high-risk, disproportionate
 effort for a single-digit remaining gap).
 
-**Last report:** 039 (`Damage/death particle effects`), 2026-07-23 — backlog item 19, extended
+**Report 039** (`Damage/death particle effects`), 2026-07-23 — backlog item 19, extended
 per human request to also cover non-fatal damage (not just death/destruction). `GameEntityBase`
 now subscribes to `Health.Damaged` alongside its existing `Health.Died` subscription. Two
 deliberately different implementation shapes: a permanent child `ParticleSystem` (`damageEffect`,
@@ -442,14 +401,14 @@ decisions log #26), Placement (`BuildingGhostView`/`PlacementController`), UI.Pr
 Building button), **Gameplay** (`GameplayBootstrap`), **CameraControl** (`CameraController`),
 Events, Pooling, Pathfinding.
 
-**Not yet built:** the rest of the polish/mechanical-adjustment backlog below (items 10
-onward), draw-call/batching *numeric verification* (architecture is done), Windows build
-export, `/final-report`.
+**Not yet built:** Windows build export, `/final-report`. That's the entire remaining scope —
+the backlog, draw-call/batching verification (item 20), and the branch A/B test are all done and
+merged into `main` (see above).
 
 **Recommended next-feature order:**
 
-*Done (Reports 012–039):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~, ~~UI.Info~~,
-~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
+*Done (Reports 012–040, all on `main`):* ~~Units~~, ~~Placement~~, ~~UI.Production~~, ~~Selection~~,
+~~UI.Info~~, ~~Gameplay scene assembly~~, ~~Draw-call/batching architecture~~, ~~Camera controls~~,
 ~~Placement/Grid architecture fixes~~, ~~Building events rearchitecture~~, ~~Selection polish~~,
 ~~Movement timing fix~~, ~~Info Panel producible-units layout fix~~, ~~UI visual polish~~,
 ~~Ranged combat & combat overhaul~~, ~~Combat/UI bugfix pass~~, ~~Grid line rendering~~,
@@ -457,20 +416,16 @@ export, `/final-report`.
 ~~Procedural island tilemap generation~~, ~~Unit animations~~,
 ~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~,
 ~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~, ~~UI pack-art reskin~~,
-~~Damage/death particle effects~~.
+~~Damage/death particle effects~~, ~~Tilemap terrain → single baked quad~~,
+~~Draw-call/batching verification~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
-Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the
-human's original presentation order (they explicitly said regrouping was fine). Suggested
-order below is dependency-aware, not a hard requirement — pick freely. **Empty** as of Report 039
-— item 19 (the last remaining entry) is done.
+Report 017 "purely mechanically works." **Empty** — every item, including the post-backlog items
+below, is done.
 
-*After the backlog above:*
-20. **Draw-call/batching verification** — once visual polish (including the terrain/tilemap
-    work) is far enough along that the numbers reflect final content: enter Play Mode, open the
-    Stats window (or Frame Debugger for exact SetPass call attribution), confirm &lt;20, and adjust
-    if not.
-21. **Windows build + `/final-report`**.
+~~20. **Draw-call/batching verification**~~ — done; see above (under 10 SetPass/draw calls at
+    idle on `main`, confirmed via a fresh batchmode EditMode pass + human Profiler measurement).
+21. **Windows build + `/final-report`** — the only remaining item.
 
 **Known environment gotchas** (full detail in `ENVIRONMENT.md`): `Awake`/`OnEnable` don't
 reliably fire on `AddComponent`-created objects in this machine's batchmode EditMode test
