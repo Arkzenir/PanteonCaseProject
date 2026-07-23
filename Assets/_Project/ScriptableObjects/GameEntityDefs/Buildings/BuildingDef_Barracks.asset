@@ -23,13 +23,3 @@ MonoBehaviour:
     prefab: {fileID: 9010477443947736692, guid: 7cfb239ab59ec2c4eb74c350097bf253, type: 3}
   - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
     prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
-  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
-    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
-  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
-    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
-  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
-    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
-  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
-    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}
-  - definition: {fileID: 11400000, guid: 420f7c4179cf4f5418663abf8c21a7d2, type: 2}
-    prefab: {fileID: 9010477443947736692, guid: c064b1ffd20b7ca4eac3bc9ff0acf1d2, type: 3}

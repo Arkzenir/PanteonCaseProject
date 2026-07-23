@@ -17,11 +17,3 @@ MonoBehaviour:
     prefab: {fileID: 4523790492788782681, guid: 41be00b56bfbee74bbfb523dc44af396, type: 3}
   - definition: {fileID: 11400000, guid: 2e00c7dfdd8869c4d9c37df8c19ec532, type: 2}
     prefab: {fileID: 7313350290205510330, guid: 12af40d80e3dc764881cea3bd991ac10, type: 3}
-  - definition: {fileID: 11400000, guid: 2e00c7dfdd8869c4d9c37df8c19ec532, type: 2}
-    prefab: {fileID: 7313350290205510330, guid: 12af40d80e3dc764881cea3bd991ac10, type: 3}
-  - definition: {fileID: 11400000, guid: 2e00c7dfdd8869c4d9c37df8c19ec532, type: 2}
-    prefab: {fileID: 7313350290205510330, guid: 12af40d80e3dc764881cea3bd991ac10, type: 3}
-  - definition: {fileID: 11400000, guid: 2e00c7dfdd8869c4d9c37df8c19ec532, type: 2}
-    prefab: {fileID: 7313350290205510330, guid: 12af40d80e3dc764881cea3bd991ac10, type: 3}
-  - definition: {fileID: 11400000, guid: 2e00c7dfdd8869c4d9c37df8c19ec532, type: 2}
-    prefab: {fileID: 7313350290205510330, guid: 12af40d80e3dc764881cea3bd991ac10, type: 3}
