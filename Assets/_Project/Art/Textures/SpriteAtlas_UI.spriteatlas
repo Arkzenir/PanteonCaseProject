@@ -44,6 +44,7 @@ SpriteAtlas:
   - {fileID: 21300000, guid: cb17f8006e32c48abaaec2c0383c0502, type: 3}
   - {fileID: 21300000, guid: 56ce71218a6d94b7ab49d5573f6b001b, type: 3}
   - {fileID: 21300000, guid: 780eafe1c8a324cab90d18efc7967e7b, type: 3}
+  - {fileID: 21300000, guid: 6523b6323e4a9924f912a2aaa6aa950d, type: 3}
   - {fileID: 21300000, guid: 95ccf692195044964a477a2f2538a1e0, type: 3}
   - {fileID: 21300000, guid: 9ed72fb392fc948c9a6969d95a154995, type: 3}
   - {fileID: 21300000, guid: 0de4de84fd02a4139b7f5756f7bcfc24, type: 3}
@@ -56,11 +57,13 @@ SpriteAtlas:
   - {fileID: 21300000, guid: a6c87a2c640894486a34e17441c0d2a5, type: 3}
   - {fileID: 21300000, guid: 74195b8c61865492fb1d0a56e808bec3, type: 3}
   - {fileID: 21300000, guid: 15fe13ac8df394d44a33d6cfe5a09472, type: 3}
+  - {fileID: 21300000, guid: ebceb8de85bcef24fa0abe6a4c684ec5, type: 3}
   - {fileID: 21300000, guid: 8226122f000374939a075569e404c1b5, type: 3}
   m_PackedSpriteNamesToIndex:
   - BigRedButton_Regular
   - TinyRoundBlueButton
   - Banner_Slots
+  - TopTitle
   - Banner
   - SmallBlueSquareButton_Regular
   - TinySquareBlueButton
@@ -73,6 +76,7 @@ SpriteAtlas:
   - TinyRoundRedButton
   - BigBlueButton_Regular
   - SmallRedRoundButton_Regular
+  - BottomTitle
   - SpecialPaper
   m_RenderDataMap: {}
   m_Tag: SpriteAtlas_UI

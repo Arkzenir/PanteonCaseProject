@@ -1,5 +1,6 @@
 using CaseGame.Core;
 using UnityEngine;
+using UnityEngine.Serialization;
 using UnityEngine.UI;
 
 namespace CaseGame.UI.MainMenu
@@ -17,7 +18,7 @@ namespace CaseGame.UI.MainMenu
         [SerializeField] private Button playButton;
         [SerializeField] private Button settingsButton;
         [SerializeField] private Button howToPlayButton;
-        [SerializeField] private Button backButton;
+        [SerializeField] private Button settingsBackButton;
         [SerializeField] private Button howToPlayBackButton;
         [SerializeField] private SceneReference gameplayScene;
 
@@ -26,7 +27,7 @@ namespace CaseGame.UI.MainMenu
             playButton.onClick.AddListener(OnPlayClicked);
             settingsButton.onClick.AddListener(OnSettingsClicked);
             howToPlayButton.onClick.AddListener(OnHowToPlayClicked);
-            backButton.onClick.AddListener(OnBackClicked);
+            settingsBackButton.onClick.AddListener(OnBackClicked);
             howToPlayBackButton.onClick.AddListener(OnBackClicked);
             ShowMainPanel();
         }
@@ -36,7 +37,7 @@ namespace CaseGame.UI.MainMenu
             playButton.onClick.RemoveListener(OnPlayClicked);
             settingsButton.onClick.RemoveListener(OnSettingsClicked);
             howToPlayButton.onClick.RemoveListener(OnHowToPlayClicked);
-            backButton.onClick.RemoveListener(OnBackClicked);
+            settingsBackButton.onClick.RemoveListener(OnBackClicked);
             howToPlayBackButton.onClick.RemoveListener(OnBackClicked);
         }
 
