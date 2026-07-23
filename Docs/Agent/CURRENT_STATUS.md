@@ -61,7 +61,10 @@ clear of GI-12's <20 budget. One expected, non-blocking observation: a one-time 
 on the very first loaded frame (the bake camera's own render of the still-live, not-yet-hidden
 Tilemaps landing in that one frame's tally) — inherent to a synchronous one-shot bake, happens
 once before the Production Menu is even interactive, doesn't recur, not a GI-12 concern (see
-decisions log #79 for the full reasoning on why this is fine as-is).
+decisions log #79 for the full reasoning on why this is fine as-is). 3 ways to suppress/smooth it
+were discussed and explicitly declined by the human — see decisions log #79's alternatives-rejected
+column and Report 040 §6: in a real (non-evaluation) production scenario, this exact cost is what
+a loading screen/transition exists to absorb (this project has none, out of scope).
 
 **In progress — backlog item 20 (draw-call/batching verification), 2026-07-23:** human-driven
 Profiler/Frame Debugger investigation into GI-12's <20 SetPass budget, ahead of a feature turn to

@@ -103,3 +103,27 @@ regenerated scene file back before deleting the throwaway script).
 - No decorative rock ring exists in the current scene (confirmed via direct scene-file search
   before starting) — nothing for this feature to bake in beyond the 3 Tilemaps, matching what the
   human already expected.
+
+## 6. Follow-up note, 2026-07-23 (post-report, human-directed)
+
+Human hand-tested and found (a) an actual bug — the bake camera's Z position was never moved off
+the Tilemaps' own Z=0 plane, so the first shipped version baked nothing; fixed same-day (decisions
+log #79) — and (b), after the fix, confirmed the real win: **under 10 SetPass/draw calls at idle**,
+comfortably inside GI-12's <20 budget. The fix also surfaced one expected, non-blocking side
+effect: a one-time ~25-SetPass spike on the very first loaded frame (the bake camera's own render
+of the still-live, not-yet-hidden Tilemaps landing in that one frame's Profiler tally, before
+`Bake()` disables them a few lines later).
+
+Discussed 3 ways to suppress/smooth that load-frame spike (deferring the bake a frame, spreading
+the bake across multiple frames — one Tilemap layer per frame — or moving the bake to edit-time
+entirely, pre-baking a checked-in texture asset with no runtime `Camera.Render()` cost at all).
+Human's explicit direction: **do not implement any of them** for this project. Scoping note for
+the record — in a real production/live-service development scenario (as opposed to this
+fixed-scope evaluation case), this exact one-time load-frame cost is exactly what a loading
+screen/transition sequence is *for*: gate the reveal of gameplay (camera fade-in, enabling
+interaction) on the terrain bake's completion, so the spike happens entirely behind the loading
+UI where no draw-call budget or player-visible frame is at stake, rather than needing to be
+suppressed, smoothed, or engineered away at the render level. This project has no loading
+screen (out of scope, brief doesn't call for one, `Boot`→`MainMenu`→`Gameplay` are direct scene
+loads) — noted here so a future pass (or the final report) doesn't need to rediscover this
+reasoning from scratch. No code changed by this note.
