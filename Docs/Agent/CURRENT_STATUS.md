@@ -7,6 +7,26 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
+**BRANCH SPLIT, 2026-07-23 — read this first if you're not sure which branch you're on.**
+Three branches now exist, all forked from the same point (this exact commit, docs identical
+across all three as of this note):
+- **`main`** — frozen. No further work here until the human picks a final direction below.
+- **`VisualPolish`** — the fully-polished build exactly as it stands through Report 039 plus the
+  draw-call fixes below (`Mask`→`RectMask2D`, HDR/Shadows off). Human-measured: right at, or just
+  slightly over, 20 SetPass calls under heavy combat (several units attacking multiple buildings
+  at once). This branch stays as-is — no more cuts.
+- **`Optimisation`** — will aggressively remove/simplify visual-polish features specifically to
+  get comfortably under 20 with real headroom: candidates named so far are replacing the Tilemap
+  terrain with a plain ground plane, removing the particle effects (Report 039) entirely, and
+  replacing the `Outline` selection shader with a simple marker sprite (a chevron from the UI
+  atlas, or similar). Each removal should land as its own feature turn (implement/verify/report),
+  same as everything else.
+
+Plan: measure both once `Optimisation`'s cuts are in, compare against the brief's evaluation
+criteria, then merge whichever (or a blend) into `main` for the final build. See ARCHITECTURE.md
+decisions log #77 for the full reasoning. **If you're picking up a fresh/compacted session, check
+`git branch` before assuming which of these three you're working in.**
+
 **In progress — backlog item 20 (draw-call/batching verification), 2026-07-23:** human-driven
 Profiler/Frame Debugger investigation into GI-12's <20 SetPass budget, ahead of a feature turn to
 implement the remaining items. No code changed yet this pass except what's noted as "done" below.
