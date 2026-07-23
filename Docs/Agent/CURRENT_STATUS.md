@@ -7,6 +7,17 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
+**Last report:** 038 (`UI pack-art reskin`), 2026-07-23 — human-requested rework of every plain
+flat-color UI `Image` (Main Menu family, Production Menu, Information Panel) into Tiny Swords "UI
+Elements" pack art: `SpecialPaper.png` for Main-Menu-family panel backgrounds, `BigBlueButton_Regular.png`
+for their buttons, `RegularPaper.png` for the two gameplay HUD panels, `Banner.png` for both panels'
+header banners, `Banner_Slots.png` for Production Menu rows, `BigRedButton_Regular.png` for Remove
+Building. New `SpriteAtlas_UI.spriteatlas` packs the source folders. Sprite choices were made by
+actually viewing the art (not guessing) and trusting the pack's own shipped 9-slice border data;
+runtime-bound content icons were left untouched. Settings screen's Dropdown/Toggle internals are
+intentionally left for the (long, human-requested) hand-wiring checklist rather than scripted.
+232/232 EditMode tests passing, 0 compile errors. See ARCHITECTURE.md decisions log #75.
+
 **Since Report 037 (no report filed, human-directed):** Fixed a real bug — a soldier could be
 handed itself as an attack target (right-clicking a cell occupied by one of the currently-selected
 soldiers) and would tick damage into itself indefinitely, since the project has no faction/team
@@ -15,7 +26,7 @@ move) any selected soldier whose own `hitTarget` is itself; other selected soldi
 click are unaffected. Human is hand-testing directly, no dedicated tests added this pass. See
 ARCHITECTURE.md decisions log #74.
 
-**Last report:** 037 (`Selection outline animation sync`), 2026-07-23 — human-reported: the
+**Report 037 (`Selection outline animation sync`), 2026-07-23** — human-reported: the
 selection outline stayed frozen on its spawn-time sprite while animated soldiers' real sprite
 changed every frame, producing a visible pose mismatch when a selected unit moved/attacked.
 `GameEntityBase` gained a `LateUpdate` syncing `outlineRenderer.sprite = spriteRenderer.sprite`
@@ -303,7 +314,7 @@ export, `/final-report`.
 ~~Environment/terrain visuals~~, ~~Camera bounds + terrain follow-up~~,
 ~~Procedural island tilemap generation~~, ~~Unit animations~~,
 ~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~,
-~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~.
+~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~, ~~UI pack-art reskin~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." Grouped by which module(s) each touches, not by the

@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!687078895 &4343727234628468602
+SpriteAtlas:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: SpriteAtlas_UI
+  m_EditorData:
+    serializedVersion: 2
+    textureSettings:
+      serializedVersion: 2
+      anisoLevel: 1
+      compressionQuality: 50
+      maxTextureSize: 2048
+      textureCompression: 0
+      filterMode: 1
+      generateMipMaps: 0
+      readable: 0
+      crunchedCompression: 0
+      sRGB: 1
+    platformSettings: []
+    packingSettings:
+      serializedVersion: 2
+      padding: 4
+      blockOffset: 1
+      allowAlphaSplitting: 0
+      enableRotation: 0
+      enableTightPacking: 0
+      enableAlphaDilation: 0
+    secondaryTextureSettings: {}
+    variantMultiplier: 1
+    packables:
+    - {fileID: 102900000, guid: 90d63221b955448f3aa6c2d28a80b0c7, type: 3}
+    - {fileID: 102900000, guid: 41a43e6e7c37a414e95852fe2482e804, type: 3}
+    - {fileID: 102900000, guid: a4430ffa7ee4946b88ac805ed1a5cb9a, type: 3}
+    - {fileID: 102900000, guid: 493b3634f86873c40816eddc1994665f, type: 3}
+    bindAsDefault: 1
+    isAtlasV2: 0
+    cachedData: {fileID: 0}
+  m_MasterAtlas: {fileID: 0}
+  m_PackedSprites:
+  - {fileID: 21300000, guid: cb17f8006e32c48abaaec2c0383c0502, type: 3}
+  - {fileID: 21300000, guid: 56ce71218a6d94b7ab49d5573f6b001b, type: 3}
+  - {fileID: 21300000, guid: 780eafe1c8a324cab90d18efc7967e7b, type: 3}
+  - {fileID: 21300000, guid: 95ccf692195044964a477a2f2538a1e0, type: 3}
+  - {fileID: 21300000, guid: 9ed72fb392fc948c9a6969d95a154995, type: 3}
+  - {fileID: 21300000, guid: 0de4de84fd02a4139b7f5756f7bcfc24, type: 3}
+  - {fileID: 21300000, guid: 880baa55608219347a0acb48d013116d, type: 3}
+  - {fileID: 21300000, guid: 3e00d43738c5a467181edf257b0ce947, type: 3}
+  - {fileID: 21300000, guid: e4a01618f97619c4e9880f78968dcca8, type: 3}
+  - {fileID: 21300000, guid: c11fbc9afab5441bf9e9690c58ed4240, type: 3}
+  - {fileID: 21300000, guid: 8e5f1ccafb55340459f1b51b1ddeb9ff, type: 3}
+  - {fileID: 21300000, guid: ffac7e0b474194ffd90e3892b95dbac8, type: 3}
+  - {fileID: 21300000, guid: a6c87a2c640894486a34e17441c0d2a5, type: 3}
+  - {fileID: 21300000, guid: 74195b8c61865492fb1d0a56e808bec3, type: 3}
+  - {fileID: 21300000, guid: 15fe13ac8df394d44a33d6cfe5a09472, type: 3}
+  - {fileID: 21300000, guid: 8226122f000374939a075569e404c1b5, type: 3}
+  m_PackedSpriteNamesToIndex:
+  - BigRedButton_Regular
+  - TinyRoundBlueButton
+  - Banner_Slots
+  - Banner
+  - SmallBlueSquareButton_Regular
+  - TinySquareBlueButton
+  - Checkmark
+  - TinySquareRedButton
+  - DownChevron
+  - SmallBlueRoundButton_Regular
+  - SmallRedSquareButton_Regular
+  - RegularPaper
+  - TinyRoundRedButton
+  - BigBlueButton_Regular
+  - SmallRedRoundButton_Regular
+  - SpecialPaper
+  m_RenderDataMap: {}
+  m_Tag: SpriteAtlas_UI
+  m_IsVariant: 0
