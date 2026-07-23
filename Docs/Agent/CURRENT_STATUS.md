@@ -401,9 +401,26 @@ decisions log #26), Placement (`BuildingGhostView`/`PlacementController`), UI.Pr
 Building button), **Gameplay** (`GameplayBootstrap`), **CameraControl** (`CameraController`),
 Events, Pooling, Pathfinding.
 
-**Not yet built:** Windows build export, `/final-report`. That's the entire remaining scope —
-the backlog, draw-call/batching verification (item 20), and the branch A/B test are all done and
-merged into `main` (see above).
+**Pre-submission audit, 2026-07-23** — 3 parallel sub-audits (brief compliance, code
+quality/dead-code, project hygiene) against `main`, human-directed, findings independently
+re-verified by the agent before acting (see ARCHITECTURE.md decisions log #80 for the full
+list). Resolved: `BorderDecorationLayout` (dead code) removed by the human; `ProjectileFactoryTests.cs`
+added (coverage gap); `Main Camera`/`EventSystem`/Controller scene-organizer placement fixed and
+unified across `MainMenu.unity`/`Gameplay.unity` (human-applied); `BuildingRemovalRequestEvent_Default.asset`
+renamed to match its class exactly; 2 orphaned `.meta` files removed; `CONVENTIONS.md`'s
+doc-vs-reality drift (SO subfolder layout, undocumented `Art/Sprites/UI/`, scene-organizer
+convention) fixed. Deliberately **not** removed: `GameEvent`/`GameEventListener` — flagged as
+currently-unused but kept for their standing architectural/template value, human's explicit call.
+The audit's one real scare (zero `Light2D` components exist in any scene, despite entities using
+a lit shader) turned out to be a non-issue — human confirmed no black sprites, ever, and the new
+`Docs/ProfilerScreenshot.png` (see below) itself visibly shows correctly-colored sprites, settling
+it with real evidence. **Windows build:** built by the human in a separate directory, to be
+submitted alongside the repo link rather than committed into it — satisfies the brief's
+deliverable requirement even though nothing `.exe`-shaped lives in this repo.
+
+**Not yet built:** `/final-report` (the development-log PDF). That's the entire remaining scope —
+the backlog, draw-call/batching verification (item 20), the branch A/B test, the Windows build,
+and this pre-submission audit are all done.
 
 **Recommended next-feature order:**
 
@@ -417,15 +434,18 @@ merged into `main` (see above).
 ~~Post-hand-test polish/bugfix pass~~, ~~Selection/placement race fix, corrected~~,
 ~~Archer attack-cancel fix~~, ~~Selection outline animation sync~~, ~~UI pack-art reskin~~,
 ~~Damage/death particle effects~~, ~~Tilemap terrain → single baked quad~~,
-~~Draw-call/batching verification~~.
+~~Draw-call/batching verification~~, ~~Pre-submission audit~~, ~~Windows build~~.
 
 *Backlog* — catalogued 2026-07-22 from the human's own post-hand-test notes after confirming
 Report 017 "purely mechanically works." **Empty** — every item, including the post-backlog items
 below, is done.
 
 ~~20. **Draw-call/batching verification**~~ — done; see above (under 10 SetPass/draw calls at
-    idle on `main`, confirmed via a fresh batchmode EditMode pass + human Profiler measurement).
-21. **Windows build + `/final-report`** — the only remaining item.
+    idle on `main`, confirmed via a fresh batchmode EditMode pass + human Profiler measurement,
+    artifact at `Docs/ProfilerScreenshot.png`).
+~~21. **Windows build**~~ — done, built by the human separately; submitted alongside the repo
+    link rather than committed into it.
+22. **`/final-report`** — the only remaining item.
 
 **Known environment gotchas** (full detail in `ENVIRONMENT.md`): `Awake`/`OnEnable` don't
 reliably fire on `AddComponent`-created objects in this machine's batchmode EditMode test
