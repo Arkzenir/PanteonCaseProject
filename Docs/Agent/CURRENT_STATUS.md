@@ -27,6 +27,45 @@ criteria, then merge whichever (or a blend) into `main` for the final build. See
 decisions log #77 for the full reasoning. **If you're picking up a fresh/compacted session, check
 `git branch` before assuming which of these three you're working in.**
 
+**`Optimisation` branch note, 2026-07-23:** an earlier Outline→SelectionMarker cut (previously
+numbered Report 040) was reverted — human decided it "amounted to nothing" — the branch was reset
+with `git reset --hard` back to the branch-split commit and force-pushed. Report numbering
+restarted from 040 for the next actual cut (the Tilemap→baked-texture terrain replacement,
+below) — the selection-marker cut is not currently landed on this branch.
+
+**Last report (`Optimisation` branch only): 040 (`Tilemap terrain → single baked quad`), 2026-07-23**
+— human A/B-tested disabling the `Terrain` GameObject (all 3 Tilemaps) entirely in favor of a
+plain placeholder rectangle sprite and measured SetPass/draw calls roughly **halving** in active
+combat — confirmed root cause (ARCHITECTURE.md decisions log #78): all 3 Tilemaps already share
+the identical material entities use (`Sprite-Lit-Default`), but `TilemapRenderer`'s rendering path
+can't join the SRP Batcher regardless, and further splits into 32×32-cell chunks (this grid's
+painted area, 80×72 world units, spans several). Fix: `IslandTerrainView`/`IslandTilemapLayout`
+keep procedurally generating the island for any grid size exactly as before, but
+`TerrainCompositor` (new, `CaseGame.Environment`) now bakes all 3 Tilemap layers into one texture
+on a single `SpriteRenderer` quad (`BakedTerrain`, sorting order -2000) at `Gameplay.unity`'s
+load, via a dedicated orthographic bake camera + `RenderTexture`, then hides the source Tilemaps
+— full tile-art fidelity kept, not downgraded to a flat color. Bake framing reuses a new pure
+`TerrainBounds.Compute` (`CaseGame.Grid`, extracted from `GameplayBootstrap`'s previous inline
+calc, also now used for the camera pan/zoom clamp) so the two can never drift apart; bake
+resolution (`TerrainBakeResolution`) preserves the tileset's native 64px/unit density up to a
+4096px ceiling, scaling down uniformly only if a larger grid would exceed it. 238/238 EditMode
+tests passing (232 + 6 new, both pure helpers directly tested), 0 compile errors. One open,
+deliberately-deferred item: the isolated bake-camera culling layer is left unnamed (raw index 8)
+since naming it needs a `ProjectSettings/TagManager.asset` edit, gated behind explicit approval.
+
+**Human follow-up (same day):** first hand-test showed a blank bake (no island/water at all) —
+root-caused and fixed same-day: the bake camera's Z position was never moved off the Tilemaps'
+own Z=0 plane, so it captured nothing (decisions log #79). Re-tested after the fix: terrain bakes
+and displays correctly, Profiler confirms **under 10 SetPass/draw calls at idle** — comfortably
+clear of GI-12's <20 budget. One expected, non-blocking observation: a one-time ~25-SetPass spike
+on the very first loaded frame (the bake camera's own render of the still-live, not-yet-hidden
+Tilemaps landing in that one frame's tally) — inherent to a synchronous one-shot bake, happens
+once before the Production Menu is even interactive, doesn't recur, not a GI-12 concern (see
+decisions log #79 for the full reasoning on why this is fine as-is). 3 ways to suppress/smooth it
+were discussed and explicitly declined by the human — see decisions log #79's alternatives-rejected
+column and Report 040 §6: in a real (non-evaluation) production scenario, this exact cost is what
+a loading screen/transition exists to absorb (this project has none, out of scope).
+
 **In progress — backlog item 20 (draw-call/batching verification), 2026-07-23:** human-driven
 Profiler/Frame Debugger investigation into GI-12's <20 SetPass budget, ahead of a feature turn to
 implement the remaining items. No code changed yet this pass except what's noted as "done" below.
