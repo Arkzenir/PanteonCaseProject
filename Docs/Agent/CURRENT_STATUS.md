@@ -7,6 +7,76 @@
 > this file. Still read `BRIEF.md` → `ARCHITECTURE.md` → `CONVENTIONS.md` per CLAUDE.md's
 > required reading order — this doesn't replace that, it's a fast orientation before it.
 
+**In progress — backlog item 20 (draw-call/batching verification), 2026-07-23:** human-driven
+Profiler/Frame Debugger investigation into GI-12's <20 SetPass budget, ahead of a feature turn to
+implement the remaining items. No code changed yet this pass except what's noted as "done" below.
+
+*Measurements so far* (`SetPass Calls` from the Profiler Rendering module, the literal GI-12
+metric — Frame Debugger step counts undercount this since some pipeline operations cost a SetPass
+without a corresponding "batch"): idle started at 24, heavy combat (3 archers + 2 buildings + 2
+particles firing) started at 28.
+
+*Done already (human, directly in-editor, not yet in a report):*
+- `ProductionMenu`'s Viewport: `Mask` → `RectMask2D` (removes stencil push/pop; also let
+  previously-mask-separated draws merge, since `Mask`'s stencil operations were a hard SRP-batch
+  boundary — bigger win than the stencil draws alone would suggest). Idle 24 → 16.
+- Disabled HDR and Cast Shadows (camera/URP asset). Idle 16 → 15 (shadow *pass* itself was
+  costing 1 batch/1 SetPass even with 0 actual casters; HDR mainly freed Render Texture memory,
+  14 → 12).
+- Catalog trimmed from 12 to 6 entries — confirmed **no effect** on SetPass (Canvas batching
+  merges same-material draws regardless of how many objects are in the run; item *count* only
+  affects vertex count, not draw/SetPass count, since `ProductionMenu`'s panel is tall enough that
+  most/all entries are simultaneously visible either way).
+
+*Root-caused, not yet fixed:* `RectMask2D` still applies the `UNITY_UI_CLIP_RECT` shader keyword
+to everything inside the Viewport/Content subtree — a different effective material variant than
+anything outside it. That's why `ProductionMenu`'s banner (outside the mask, fixed header) can't
+merge with its rows (inside the mask, scrollable) — structurally inherent to "scrollable + clipped
++ fixed header," which `InformationPanel` doesn't need (no ScrollRect/Mask at all), not a bug.
+
+*Candidate remaining optimizations, ranked most → least worth doing* (estimates are per-item
+ceilings, mostly from the SetPass-vs-Batches gap staying ~constant at ~7-8 across very different
+content, i.e. it's mostly fixed pipeline overhead, not something more content-side batching fixes):
+
+~~1. Consolidate `Water`/`Island_Grass`/`Island_Cliff` into one `Tilemap`/`TilemapRenderer`~~ —
+   **ruled out, confirmed no benefit.** Human tested at the camera's actual maximum zoom-out
+   (`CameraController`'s configured `maxOrthographicSize` — the real worst case, water dominating
+   the entire frame) and the Frame Debugger tree still showed exactly 1 `TilemapRenderer.Render`
+   draw. Unity's 2D Tilemap renderer is already combining all 3 Tilemaps into a single draw call
+   on its own (they share the same default Tilemap material/sorting settings), at every camera
+   position the game allows. Doing the merge would be pure refactor risk for zero gain — dropped.
+1. **Unify `DamageEffect`/`DeathEffect` onto one shared, *textured* particle Material** (reuse one
+   spritesheet — e.g. `Dust_01` — for both, differing only by a per-instance color tint instead
+   of two separate Materials/spritesheets). Small visual cost (both effects share one animated
+   shape now, just recolored) but keeps a real animated look. Up to −1 SetPass, only when both
+   effects are firing simultaneously (never helps idle).
+2. **Unify particles onto one shared, *untextured* (flat-color quad) Material + enable GPU
+   Instancing on it.** Bigger visual cost (loses the animated dust/explosion look entirely — flat
+   tinted shapes instead). Same capped −1 from the SRP-Batcher merge as option 1, but *also*
+   opens the door to GPU Instancing actually engaging (identical mesh/UVs across instances, no
+   per-particle-timed animation breaking it) — could merge any number of simultaneous instances
+   into one draw, not just two. Larger, less certain upside for a real look downgrade.
+3. **`GridLines` → reuse the shared default sprite material** (`Sprite-Lit-Default`, already used
+   by every entity) instead of the custom `CaseGame/GridLines` shader. Requires real code work
+   (`GridLineMeshBuilder` would need to emit UVs targeting a genuinely-white texel in that shared
+   atlas — currently emits none) and loses per-`GridDefinition` `LineColor` tuning. Capped at −1,
+   and only when entities are on-screen and drawn adjacent in sort order (GridLines already
+   renders as exactly 1 SetPass on its own regardless of board size — this only helps it *merge*
+   into an already-open batch, not shrink further on its own). Highest effort-to-guaranteed-gain
+   ratio of the batching-technique options.
+4. **Drop `ProductionMenuItem`'s per-row background art** (`Banner_Slots`). Guaranteed −1, but
+   reverses part of the UI reskin (Report 038) done at explicit human request — rows go back to
+   plain icon+text with no decorative slot background.
+5. **Move `ProductionMenu`'s banner into the scrollable `Content`** (so its text merges with row
+   text, both then sharing `UNITY_UI_CLIP_RECT`). Guaranteed −1, but the "Production Menu" header
+   would scroll away with the list instead of staying pinned — a real UX regression, ranked lowest
+   since it's a functional loss, not just a decorative one.
+
+Ruled out: switching render pipelines/writing a custom SRP (URP already provides the relevant
+technique — SRP Batcher — and GI-12 itself names "batching and GPU instancing," not a pipeline
+rewrite, as the expected approach; a custom pipeline would be large, high-risk, disproportionate
+effort for a single-digit remaining gap).
+
 **Last report:** 039 (`Damage/death particle effects`), 2026-07-23 — backlog item 19, extended
 per human request to also cover non-fatal damage (not just death/destruction). `GameEntityBase`
 now subscribes to `Health.Damaged` alongside its existing `Health.Died` subscription. Two
