@@ -25,7 +25,7 @@ namespace CaseGame.Grid
         public Color LineColor => lineColor;
         public float LineThickness => lineThickness;
 
-        /// <summary>How far (world units) the environment's water backdrop extends beyond the grid's own bounds — the single source of truth both the baked terrain (<c>Terrain/Water</c> Tilemap) and <see cref="CameraControl.CameraController"/>'s pan/zoom bounds read, so the camera can never show past the water's own painted edge (human-requested, Report 031).</summary>
+        /// <summary>How far (world units) the environment's water backdrop extends beyond the grid's own bounds — the single source of truth both the baked terrain (<c>Terrain/Water</c> Tilemap) and <see cref="CameraControl.CameraController"/>'s pan/zoom bounds read, so the camera can never show past the water's own painted edge.</summary>
         public float TerrainMargin => terrainMargin;
 
         private void OnValidate()

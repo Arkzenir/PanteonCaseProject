@@ -6,12 +6,11 @@ namespace CaseGame.Grid
     /// <summary>
     /// Pure geometry for rendering a <see cref="GridModel"/>'s cell boundaries as a single
     /// combined mesh — one draw call for the entire board, regardless of its size, instead of
-    /// one <see cref="LineRenderer"/> per line (which would cost one draw call per line, easily
-    /// blowing GI-12's &lt;20 SetPass-call budget on a real-sized board — see decisions log
-    /// #18/#49 for the same draw-call-conscious reasoning applied to sprites). Every line
-    /// segment becomes a thin quad (2 triangles) with a shared color baked into its vertices,
-    /// read by <c>GridLines.shader</c> (plain vertex-color pass-through — there's no sprite
-    /// texture to sample here, unlike this project's other custom shaders).
+    /// one <see cref="LineRenderer"/> per line (which would cost one draw call per line and add
+    /// up fast on a real-sized board). Every line segment becomes a thin quad (2 triangles) with
+    /// a shared color baked into its vertices, read by <c>GridLines.shader</c> (plain
+    /// vertex-color pass-through — there's no sprite texture to sample here, unlike this
+    /// project's other custom shaders).
     /// </summary>
     public static class GridLineMeshBuilder
     {
@@ -27,7 +26,7 @@ namespace CaseGame.Grid
             public Vector2 End { get; }
         }
 
-        /// <summary>Every column boundary (0..Columns) and row boundary (0..Rows), each spanning the full opposite axis — (Columns+1)+(Rows+1) segments total, matching the grid's old gizmo-drawing logic exactly.</summary>
+        /// <summary>Every column boundary (0..Columns) and row boundary (0..Rows), each spanning the full opposite axis — (Columns+1)+(Rows+1) segments total.</summary>
         public static List<Segment> BuildSegments(GridModel grid)
         {
             var segments = new List<Segment>(grid.Columns + grid.Rows + 2);

@@ -5,24 +5,22 @@ using UnityEngine.InputSystem;
 namespace CaseGame.CameraControl
 {
     /// <summary>
-    /// Controller: middle-mouse-drag pans the camera, scroll wheel zooms it (human-requested
-    /// quality-of-life, not a brief requirement). Both are skipped while the pointer is over UI
-    /// (the Production Menu/Info Panel) — same `IsPointerOverGameObject` guard Placement/
-    /// Selection already use (decisions log #47) — so scrolling the Production Menu's own list
-    /// doesn't also zoom the camera underneath it.
+    /// Middle-mouse-drag pans the camera; scroll wheel zooms it. Both are skipped while the
+    /// pointer is over UI (the Production Menu/Info Panel) — the same
+    /// `IsPointerOverGameObject` guard Placement/Selection use — so scrolling the Production
+    /// Menu's own list doesn't also zoom the camera underneath it.
     ///
     /// <see cref="Pan"/>/<see cref="Zoom"/> take explicit inputs and are callable directly,
-    /// independent of <see cref="Update"/>'s device reading — the same "extract the testable
-    /// decision, keep the MonoBehaviour thin" pattern used by every other controller here.
+    /// independent of <see cref="Update"/>'s device reading, keeping the MonoBehaviour thin
+    /// and the actual pan/zoom math testable on its own.
     ///
-    /// As of Report 031, pan/zoom are clamped to <see cref="SetBounds"/>'s rectangle (the
-    /// environment's water backdrop extent, human-requested) via the pure/testable
-    /// <see cref="ClampToBounds"/>, so the camera can never show the background color/skybox
-    /// past the water's own painted edge.
+    /// Pan/zoom are clamped to <see cref="SetBounds"/>'s rectangle (the environment's water
+    /// backdrop extent) via the pure, testable <see cref="ClampToBounds"/>, so the camera can
+    /// never show background past the water's own painted edge.
     /// </summary>
     public class CameraController : MonoBehaviour
     {
-        /// <summary>Windows reports one physical mouse-wheel notch as ±120 on <c>Mouse.scroll</c> (matching the legacy WHEEL_DELTA convention), not a small ±1-ish value — dividing by this turns the raw Input System delta into "notches" so <see cref="zoomSpeed"/> means orthographic-size change per notch, not per raw input unit. Without this, one physical notch (120 * zoomSpeed) could swing across the entire min/max range in a single tick (human-reported, Report 034).</summary>
+        /// <summary>Windows reports one physical mouse-wheel notch as ±120 on <c>Mouse.scroll</c> (the legacy WHEEL_DELTA convention), not a small ±1-ish value — dividing by this converts the raw Input System delta into "notches", so <see cref="zoomSpeed"/> means orthographic-size change per notch rather than per raw input unit. Without it, one physical notch (120 * zoomSpeed) could swing across the entire min/max range in a single tick.</summary>
         private const float RawScrollUnitsPerNotch = 120f;
 
         [SerializeField] private Camera targetCamera;

@@ -8,13 +8,13 @@ namespace CaseGame.Buildings
     /// Building-specific base on top of <see cref="GameEntityBase"/>. All the actual behavior
     /// (Health, IDamageable, sprite, death callback) lives on the shared base; this just
     /// re-exposes <see cref="Definition"/> as the strongly-typed <see cref="BuildingDefinition"/>
-    /// for consumers (e.g. a future Info Panel reading <c>ProducibleUnits</c>).
+    /// for consumers (e.g. the Info Panel reading <c>ProducibleUnits</c>).
     /// </summary>
     public abstract class BuildingBase : GameEntityBase
     {
         public new BuildingDefinition Definition => (BuildingDefinition)base.Definition;
 
-        /// <summary>Where this building's produced units appear (GI-7). Defaults to the building's own position; <see cref="Barracks"/> overrides it with a dedicated spawn point. Virtual so callers (e.g. Info Panel unit production) never need to type-check for "is this a Barracks" — any building capable of producing units can be asked this generically (requirement 2's modularity mandate).</summary>
+        /// <summary>Where this building's produced units appear. Defaults to the building's own position; <see cref="Barracks"/> overrides it with a dedicated spawn point. Virtual so callers never need to type-check for "is this a Barracks" — any building capable of producing units can be asked this generically.</summary>
         public virtual Vector3 SpawnPosition => transform.position;
 
         private GridModel _grid;
@@ -48,7 +48,7 @@ namespace CaseGame.Buildings
             }
         }
 
-        /// <summary>Clamps <paramref name="fromCell"/> into this building's footprint rectangle rather than always reporting its origin — an attacker standing anywhere around a multi-cell building should be considered "in range" of whichever edge cell is actually nearest to it. Falls back to the shared single-cell default if this building isn't currently placed on a grid (matches <see cref="GetNearestOccupiedCell"/>'s base behavior for that edge case).</summary>
+        /// <summary>Clamps <paramref name="fromCell"/> into this building's footprint rectangle rather than always reporting its origin — an attacker standing anywhere around a multi-cell building should be considered "in range" of whichever edge cell is actually nearest to it. Falls back to the shared single-cell default (<see cref="GameEntityBase.GetNearestOccupiedCell"/>) if this building isn't currently placed on a grid.</summary>
         public override Vector2Int GetNearestOccupiedCell(GridModel grid, Vector2Int fromCell)
         {
             if (!FootprintOrigin.HasValue)

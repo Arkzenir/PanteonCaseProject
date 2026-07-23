@@ -9,8 +9,7 @@ namespace CaseGame.Grid
     /// build, not just as a Scene-view gizmo. <c>[ExecuteAlways]</c> plus a cheap per-Update
     /// signature check rebuilds the mesh in Edit Mode too, so tweaking <see cref="GridDefinition"/>
     /// values (or this component's own <see cref="lineMaterial"/>) previews immediately — <c>Awake</c>
-    /// alone can't do this, since it never fires outside Play Mode (the same gotcha documented in
-    /// ENVIRONMENT.md/decisions log elsewhere).
+    /// alone can't do this, since it never fires outside Play Mode.
     /// </summary>
     [ExecuteAlways]
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
@@ -36,7 +35,7 @@ namespace CaseGame.Grid
         public GridDefinition Definition => gridDefinition;
         public bool LinesVisible => _meshRenderer != null && _meshRenderer.enabled;
 
-        /// <summary>Toggles whether the grid lines render at all — the feature's "toggleable on/off" requirement. Plain method rather than an event channel: this is local render state on this one instance, nothing else needs to react to it.</summary>
+        /// <summary>Toggles whether the grid lines render at all. Plain method rather than an event channel: this is local render state on this one instance, nothing else needs to react to it.</summary>
         public void SetLinesVisible(bool visible)
         {
             EnsureComponents();

@@ -6,8 +6,7 @@ namespace CaseGame.Grid
     /// The environment's water-backdrop rectangle: the grid's own bounds expanded by
     /// <see cref="GridDefinition.TerrainMargin"/> on every side. Single source of truth shared by
     /// <see cref="CameraControl.CameraController"/>'s pan/zoom clamp and the baked terrain quad
-    /// (<c>CaseGame.Environment.TerrainCompositor</c>), so the two can never drift out of sync —
-    /// extracted from <c>GameplayBootstrap</c>'s own inline calculation (decisions log #78).
+    /// (<c>CaseGame.Environment.TerrainCompositor</c>), so the two can never drift out of sync.
     /// </summary>
     public static class TerrainBounds
     {

@@ -4,10 +4,10 @@ namespace CaseGame.Entities
 {
     /// <summary>
     /// Shared data for anything placed on the board with a name/image/footprint/HP —
-    /// buildings and units both need exactly this shape (brief requirements 3, 9, 10), so it
-    /// lives here once instead of being duplicated per concrete definition type. Concrete
-    /// subclasses add only what actually differs (<c>BuildingDefinition</c>: producible units;
-    /// <c>UnitDefinition</c>: attack damage).
+    /// buildings and units both need exactly this shape, so it lives here once instead of
+    /// being duplicated per concrete definition type. Concrete subclasses add only what
+    /// actually differs (<c>BuildingDefinition</c>: producible units; <c>UnitDefinition</c>:
+    /// attack damage).
     /// </summary>
     public abstract class GameEntityDefinition : ScriptableObject
     {

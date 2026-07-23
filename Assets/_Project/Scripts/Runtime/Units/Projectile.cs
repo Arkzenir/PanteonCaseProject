@@ -4,16 +4,13 @@ using UnityEngine;
 namespace CaseGame.Units
 {
     /// <summary>
-    /// Pooled, purely-visual ranged-attack indicator (GI-10/11's ranged case, human-requested
-    /// beyond the brief's minimum). Tracks its target's *current* position every frame — not a
-    /// fixed straight-line trajectory toward a snapshot position — so it's visually clear which
-    /// unit is shooting at which target even if the target is moving. No <c>Collider</c>/
-    /// <c>Rigidbody</c>: it never collides with anything it passes over, it just applies damage
-    /// once it reaches the target's actual position. A plain pooled MonoBehaviour rather than a
-    /// Shuriken <c>ParticleSystem</c> — reproducing per-target homing and an exact
-    /// arrived-so-apply-damage trigger with <c>ParticleSystem</c> would mean manually driving
-    /// individual particles via <c>SetParticles</c>/<c>GetParticles</c> every frame anyway, no
-    /// ergonomic win over a MonoBehaviour (see ARCHITECTURE.md decisions log).
+    /// Pooled, purely-visual ranged-attack projectile. Tracks its target's current position every
+    /// frame rather than a fixed trajectory, so it visibly follows a moving target. Has no
+    /// <c>Collider</c>/<c>Rigidbody</c> — it applies damage directly once it reaches the target's
+    /// position instead of colliding with anything along the way. A plain pooled MonoBehaviour
+    /// rather than a <c>ParticleSystem</c>: reproducing per-target homing and an arrival trigger
+    /// with particles would mean manually driving individual particles every frame anyway, with
+    /// no real benefit.
     /// </summary>
     public class Projectile : MonoBehaviour
     {
@@ -45,7 +42,7 @@ namespace CaseGame.Units
             return Vector3.Distance(currentPosition, targetPosition) <= arrivalDistance;
         }
 
-        /// <summary>Rotation that points this projectile from <paramref name="currentPosition"/> toward <paramref name="targetPosition"/> (human-requested: the arrow should visibly face its travel direction, not stay at a fixed orientation). <paramref name="forwardOffsetDegrees"/> corrects for the sprite's own drawn orientation — the art's "forward" isn't guaranteed to be +X, so this is inspector-tunable rather than hardcoded. Identity when the two positions coincide (no direction to face), which only happens at the exact arrival instant. Pure so the angle math is directly testable independent of a live <c>Update</c> loop.</summary>
+        /// <summary>Rotation that points this projectile from <paramref name="currentPosition"/> toward <paramref name="targetPosition"/>, so it visibly faces its travel direction. <paramref name="forwardOffsetDegrees"/> corrects for the sprite's own drawn orientation — the art's "forward" isn't guaranteed to be +X, so this is inspector-tunable rather than hardcoded. Identity when the two positions coincide, which only happens at the exact arrival instant. Pure so the angle math is directly testable independent of a live <c>Update</c> loop.</summary>
         public static Quaternion FacingRotation(Vector3 currentPosition, Vector3 targetPosition, float forwardOffsetDegrees)
         {
             var direction = targetPosition - currentPosition;
@@ -60,11 +57,10 @@ namespace CaseGame.Units
 
         private void Update()
         {
-            // Pooled-reuse hazard (same class of issue as decisions log #39/#52/#55): the target
-            // reference can go stale (destroyed-and-reused for something else) between frames.
-            // IsDead is the guard — a freshly-reused instance resets IsDead to false via its own
-            // Initialize, so worst case is a narrow window where a dying target gets replaced
-            // mid-flight; accepted at the same tolerance this project already applies elsewhere.
+            // Pooled-reuse hazard: the target reference can go stale (destroyed and reused for
+            // something else) between frames. IsDead guards against this — a freshly-reused
+            // instance resets IsDead to false via its own Initialize, so worst case is a narrow
+            // window where a dying target gets replaced mid-flight.
             if (_target == null || _target.IsDead)
             {
                 Arrive(applyDamage: false);

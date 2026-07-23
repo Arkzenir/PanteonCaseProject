@@ -9,15 +9,13 @@ namespace CaseGame.Units
 {
     /// <summary>
     /// Unit-specific base on top of <see cref="GameEntityBase"/>: movement along a pathfound
-    /// route (brief-mandated Coroutine usage, GI-7/8) and attacking (GI-10/11). Re-exposes
-    /// <see cref="Definition"/> as the strongly-typed <see cref="UnitDefinition"/>, mirroring
-    /// <c>BuildingBase</c>.
+    /// route (via Coroutine) and attacking. Re-exposes <see cref="Definition"/> as the
+    /// strongly-typed <see cref="UnitDefinition"/>, mirroring <c>BuildingBase</c>.
     ///
-    /// The brief's 3 soldier types are data variants of the single concrete <see cref="Soldier"/>
-    /// subclass (three different <see cref="UnitDefinition"/> assets/prefabs), not three
-    /// separate classes — nothing behavioral differs between Soldier 1/2/3, only attack damage
-    /// (a data value), so three empty subclasses would be an OOP checkbox with no real
-    /// substance behind it. See ARCHITECTURE.md's decisions log for the full reasoning.
+    /// The different soldier types are data variants of the single concrete <see cref="Soldier"/>
+    /// subclass (different <see cref="UnitDefinition"/> assets/prefabs), not separate classes —
+    /// nothing behavioral differs between them, only attack damage (a data value), so separate
+    /// empty subclasses would be an OOP checkbox with no real substance behind it.
     /// </summary>
     public abstract class SoldierBase : GameEntityBase
     {
@@ -34,10 +32,10 @@ namespace CaseGame.Units
         private ProjectileFactory _pendingProjectileFactory;
         private int _idleStateHash;
 
-        /// <summary>Whether a move or attack coroutine is currently running — exposed for observers/tests, mirroring <c>PlacementController.IsPlacing</c>'s pattern.</summary>
+        /// <summary>Whether a move or attack coroutine is currently running — exposed for observers/tests.</summary>
         public bool IsActing => _actionCoroutine != null;
 
-        /// <summary>Captures the Animator's default (Idle) state hash — every wired controller's default state is Idle (Report 033) — so <see cref="CancelAction"/> can force an in-progress attack animation straight back to it without hardcoding any of the 3 controllers' differently-named states. <c>Start</c>, not <c>Awake</c>: the built-in Animator component isn't guaranteed to have evaluated its default state that early.</summary>
+        /// <summary>Captures the Animator's default (Idle) state hash so <see cref="CancelAction"/> can force an in-progress attack animation straight back to it, without hardcoding any of the differently-named idle states across controllers. <c>Start</c>, not <c>Awake</c>: the Animator isn't guaranteed to have evaluated its default state that early.</summary>
         private void Start()
         {
             if (animator != null && animator.runtimeAnimatorController != null)
@@ -46,7 +44,7 @@ namespace CaseGame.Units
             }
         }
 
-        /// <summary>Requests the shortest path to <paramref name="targetCell"/> and walks it, routing around buildings (GI-7/8). Cancels any in-progress attack — a move order always takes over, per the human's cancellation rule. No-ops (but still cancels) if unreachable or already there.</summary>
+        /// <summary>Requests the shortest path to <paramref name="targetCell"/> and walks it, routing around buildings. Cancels any in-progress attack — a move order always takes over. No-ops (but still cancels) if unreachable or already there.</summary>
         public void MoveTo(Vector2Int targetCell, GridModel grid)
         {
             CancelAction();
@@ -61,12 +59,12 @@ namespace CaseGame.Units
         }
 
         /// <summary>
-        /// Commands this soldier to attack <paramref name="target"/> (GI-10/11): walks into
+        /// Commands this soldier to attack <paramref name="target"/>: walks into
         /// <see cref="UnitDefinition.AttackRange"/> first if not already there, then attacks once
         /// every <c>1 / AttackSpeed</c> seconds until the target leaves range or dies. Cancels
         /// (and replaces) any in-progress move or attack — calling this again with a different
         /// target switches onto it immediately, no "attack lock" to clear first, matching normal
-        /// RTS convention (human-confirmed). No-ops on a null or already-dead target.
+        /// RTS convention. No-ops on a null or already-dead target.
         /// </summary>
         public void Attack(GameEntityBase target, GridModel grid, ProjectileFactory projectileFactory)
         {
@@ -79,7 +77,7 @@ namespace CaseGame.Units
             _actionCoroutine = StartCoroutine(AttackRoutine(target, grid, projectileFactory));
         }
 
-        /// <summary>Cancels whichever move/attack coroutine is currently running. Safe to call when nothing is active. Also resets the "moving" animation state — <c>StopCoroutine</c> abandons <see cref="FollowPath"/> wherever it was suspended, so without this an interrupted move (e.g. a new attack order mid-stride) would leave the run animation stuck on. If a ranged attack's projectile release is still pending (the Archer's draw animation hasn't reached its release event yet), the attack animation is forced straight back to Idle instead of being left to play out — otherwise the already-cancelled attack would still visually finish and fire its projectile after the unit had already moved on (human-reported).</summary>
+        /// <summary>Cancels whichever move/attack coroutine is currently running. Safe to call when nothing is active. Also resets the "moving" animation state — <c>StopCoroutine</c> abandons <see cref="FollowPath"/> wherever it was suspended, so without this an interrupted move (e.g. a new attack order mid-stride) would leave the run animation stuck on. If a ranged attack's projectile release is still pending (the draw animation hasn't reached its release event yet), the attack animation is forced straight back to Idle instead of being left to play out — otherwise the already-cancelled attack would still visually finish and fire its projectile after the unit had already moved on.</summary>
         public void CancelAction()
         {
             if (_actionCoroutine != null)
@@ -101,7 +99,7 @@ namespace CaseGame.Units
             _pendingRangedTarget = null;
         }
 
-        /// <summary>Seconds a single grid step should take at the given cells-per-second move speed — every step, orthogonal or diagonal, counts as exactly 1 cell (GI-7/8's "shortest path" is measured in steps, not world distance), so this depends only on <paramref name="moveSpeed"/>, never on the step's actual world distance. Pure so this specific contract is directly testable without a live coroutine/Update loop.</summary>
+        /// <summary>Seconds a single grid step should take at the given cells-per-second move speed — every step, orthogonal or diagonal, counts as exactly 1 cell (path length is measured in steps, not world distance), so this depends only on <paramref name="moveSpeed"/>, never on the step's actual world distance. Pure so this is directly testable without a live coroutine/Update loop.</summary>
         public static float StepDuration(float moveSpeed) => 1f / moveSpeed;
 
         /// <summary>Seconds between attacks at the given attacks-per-second rate. Pure, mirrors <see cref="StepDuration"/>.</summary>
@@ -128,7 +126,7 @@ namespace CaseGame.Units
         /// <summary>Whether facing from X <paramref name="fromX"/> toward X <paramref name="toX"/> means facing left (the art's default, unflipped orientation faces right) — used for both movement-direction and attack-target-direction sprite flipping. Callers should only act on this when the two X values actually differ; a purely-vertical move/attack has no defined horizontal facing and should just keep whatever facing was already set. Pure and testable.</summary>
         public static bool FacesLeft(float fromX, float toX) => toX < fromX;
 
-        /// <summary>Called via Animation Event (relayed from the <c>Visuals</c> child's <see cref="Animator"/> — see <see cref="SoldierAnimationEvents"/>) at the moment a ranged attack's projectile should actually launch, e.g. when the bow visibly releases the arrow, rather than the instant the attack tick started (human-requested, Report 034). No-ops if the pending target died, or was cleared by a newer attack overwriting it, before the event fired.</summary>
+        /// <summary>Called via Animation Event (relayed from the <c>Visuals</c> child's <see cref="Animator"/> — see <see cref="SoldierAnimationEvents"/>) at the moment a ranged attack's projectile should actually launch, e.g. when the bow visibly releases the arrow, rather than the instant the attack tick started. No-ops if the pending target died, or was cleared by a newer attack overwriting it, before the event fired.</summary>
         public void ReleaseAttack()
         {
             if (_pendingRangedTarget == null || _pendingRangedTarget.IsDead)
@@ -185,14 +183,13 @@ namespace CaseGame.Units
         }
 
         /// <summary>
-        /// Melee attacks apply damage instantly (unchanged brief-minimum behavior). Ranged
-        /// attacks launch a tracked <see cref="Projectile"/> instead — but only immediately if
-        /// there's no <see cref="animator"/> to synchronize with; when one exists, the launch is
-        /// deferred to <see cref="ReleaseAttack"/> (an Animation Event partway through the Shoot
-        /// clip, human-requested so the arrow visibly leaves the bow instead of the moment the
-        /// attack tick started). Fires the <c>Attack</c> animation trigger once per call, the
-        /// single point every actual hit/shot passes through, and faces this soldier toward the
-        /// target first.
+        /// Melee attacks apply damage instantly. Ranged attacks launch a tracked
+        /// <see cref="Projectile"/> instead — but only immediately if there's no
+        /// <see cref="animator"/> to synchronize with; when one exists, the launch is deferred to
+        /// <see cref="ReleaseAttack"/> (an Animation Event partway through the Shoot clip, so the
+        /// arrow visibly leaves the bow instead of firing the instant the attack tick started).
+        /// Fires the <c>Attack</c> animation trigger once per call, the single point every actual
+        /// hit/shot passes through, and faces this soldier toward the target first.
         /// </summary>
         private void PerformAttack(GameEntityBase target, ProjectileFactory projectileFactory)
         {

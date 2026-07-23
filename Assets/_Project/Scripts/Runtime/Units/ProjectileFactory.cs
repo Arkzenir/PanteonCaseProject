@@ -5,12 +5,11 @@ using UnityEngine;
 namespace CaseGame.Units
 {
     /// <summary>
-    /// Factory pattern (brief-mandated), pooling <see cref="Projectile"/> instances in their own
-    /// dedicated <see cref="PrefabPool{T}"/> — not reused from <see cref="UnitFactory"/> or
-    /// <see cref="Buildings.BuildingFactory"/>, since projectiles are a materially different kind
-    /// of thing (short-lived visual, no <see cref="Combat.Health"/>/definition). Only one
-    /// projectile prefab is needed today (no per-soldier-type projectile variants requested), so
-    /// unlike <c>UnitFactory</c>/<c>BuildingFactory</c> this wraps a single <see cref="PrefabPool{T}"/>
+    /// Pools <see cref="Projectile"/> instances in their own dedicated <see cref="PrefabPool{T}"/>
+    /// — not reused from <see cref="UnitFactory"/> or <see cref="Buildings.BuildingFactory"/>,
+    /// since projectiles are a materially different kind of thing (short-lived visual, no
+    /// <see cref="Combat.Health"/>/definition). Only one projectile prefab exists, so unlike
+    /// <c>UnitFactory</c>/<c>BuildingFactory</c> this wraps a single <see cref="PrefabPool{T}"/>
     /// directly rather than a per-prefab dictionary of pools.
     /// </summary>
     public class ProjectileFactory

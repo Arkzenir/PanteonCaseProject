@@ -193,12 +193,11 @@ namespace CaseGame.Tests.EditMode.Units
         [Test]
         public void Attack_ThenMoveTo_CancelsAttackAndDoesNotThrow()
         {
-            // Regression coverage for the reported bug's API-level shape: issuing a move order
-            // while an attack is in progress must cancel cleanly. The animator-driven half of the
-            // fix (forcing an in-progress ranged attack animation back to Idle so its deferred
-            // projectile never fires) only runs when an Animator is wired, which — per this
-            // project's established EditMode-testing limits (ENVIRONMENT.md) — isn't exercised
-            // here; this just guards the always-active code path stays throw-free.
+            // Issuing a move order while an attack is in progress must cancel cleanly. The
+            // animator-driven half (forcing an in-progress ranged attack animation back to Idle
+            // so its deferred projectile never fires) needs a wired Animator, which isn't
+            // exercised in EditMode; this just guards that the always-active code path stays
+            // throw-free.
             var go = new GameObject("Soldier");
             var soldier = go.AddComponent<Soldier>();
             var definition = CreateDefinition(10, 5);
@@ -297,9 +296,8 @@ namespace CaseGame.Tests.EditMode.Units
         public void InterpolateStep_DiagonalStep_SameElapsedFractionOfEqualDuration_ReachesSameProgressFractionAsOrthogonal()
         {
             // A diagonal step covers more world distance than an orthogonal one, but at the same
-            // elapsed fraction of the same (fixed) duration both must be at the same *progress
-            // fraction* — this is what makes the interpolation time-based, not distance-based,
-            // fixing the bug where diagonal steps used to take longer at the same nominal speed.
+            // elapsed fraction of the same (fixed) duration both must reach the same *progress
+            // fraction* — that's what makes the interpolation time-based, not distance-based.
             var orthogonalEnd = new Vector3(1f, 0f, 0f);
             var diagonalEnd = new Vector3(1f, 1f, 0f);
 

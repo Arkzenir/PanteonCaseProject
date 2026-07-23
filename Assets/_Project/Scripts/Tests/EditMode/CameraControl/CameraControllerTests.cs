@@ -171,8 +171,8 @@ namespace CaseGame.Tests.EditMode.CameraControl
         [Test]
         public void Zoom_OneNotchWorthOfNotches_DoesNotJumpStraightToMinOrMax()
         {
-            // Reproduces the human's exact report: zoomSpeed 0.2, min 2, max 20 — one raw
-            // 120-unit notch must NOT swing the full range in a single tick.
+            // zoomSpeed 0.2, min 2, max 20 — one raw 120-unit notch must NOT swing the
+            // full range in a single tick.
             var so = new SerializedObject(_controller);
             so.FindProperty("zoomSpeed").floatValue = 0.2f;
             so.FindProperty("minOrthographicSize").floatValue = 2f;

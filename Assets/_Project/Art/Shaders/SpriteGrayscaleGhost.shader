@@ -1,8 +1,7 @@
-// Renders a sprite desaturated (luminance-only), then multiplies by _Color — used for the
-// Placement ghost preview (BuildingGhostView). Desaturating first is what matters: tinting
-// the original full-color sprite green/red directly would multiply-blend with whatever hues
-// are already in the art (e.g. a blue banner would go muddy dark-green) instead of reading as
-// a clean valid/invalid silhouette.
+// Desaturates a sprite to luminance, then multiplies by _Color — used for the placement ghost
+// preview. Desaturating first matters: tinting a full-color sprite green/red directly blends
+// with whatever hues are already in the art (a blue banner would go muddy dark-green instead
+// of reading as a clean valid/invalid signal).
 Shader "CaseGame/SpriteGrayscaleGhost"
 {
     Properties

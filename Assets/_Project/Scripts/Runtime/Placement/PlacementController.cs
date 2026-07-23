@@ -9,20 +9,20 @@ namespace CaseGame.Placement
     /// <summary>
     /// Controller: drives building placement. Tracks the mouse over the grid, moves a ghost
     /// preview (<see cref="BuildingGhostView"/>) and tints it green/valid or red/invalid by
-    /// querying <see cref="GridModel"/> each frame — no coupling to specific building types
-    /// (GI-3) — and commits (marks grid cells occupied, reveals the real sprite) or cancels
-    /// (returns the pooled instance) on input.
+    /// querying <see cref="GridModel"/> each frame — no coupling to specific building types —
+    /// and commits (marks grid cells occupied, reveals the real sprite) or cancels (returns the
+    /// pooled instance) on input.
     ///
     /// The <c>cell</c> passed to <see cref="UpdateGhostAt"/>/<see cref="TryCommitAt"/> is the
     /// cell under the cursor, treated as the *center* of the footprint, not its bottom-left
     /// corner — the building's visual art is centered on its own GameObject origin, so
     /// positioning by corner instead of center would visibly misalign the sprite from the cells
-    /// it actually occupies (see ARCHITECTURE.md decisions log).
+    /// it actually occupies.
     ///
     /// The actual decision logic (<see cref="BeginPlacement"/>/<see cref="UpdateGhostAt"/>/
     /// <see cref="TryCommitAt"/>/<see cref="CancelPlacement"/>) takes an explicit cell and is
-    /// callable directly, independent of <see cref="Update"/>'s mouse reading — humble
-    /// MonoBehaviour, testable logic, per CONVENTIONS.md.
+    /// callable directly, independent of <see cref="Update"/>'s mouse reading, so it can be
+    /// unit-tested without simulating input.
     /// </summary>
     public class PlacementController : MonoBehaviour
     {
@@ -108,7 +108,7 @@ namespace CaseGame.Placement
             _ghostView = null;
         }
 
-        /// <summary>Frees the building's grid footprint and returns its instance to the pool — entirely independent of Health/<c>ApplyDamage</c>, unlike combat destruction (see ARCHITECTURE.md decisions log).</summary>
+        /// <summary>Frees the building's grid footprint and returns its instance to the pool — entirely independent of Health/<c>ApplyDamage</c>, unlike combat destruction.</summary>
         public void RemoveBuilding(BuildingBase building)
         {
             if (building == null)

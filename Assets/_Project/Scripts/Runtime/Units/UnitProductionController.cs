@@ -5,17 +5,17 @@ namespace CaseGame.Units
 {
     /// <summary>
     /// Controller: responds to a clicked producible-unit icon on the Information Panel by
-    /// spawning that unit at the requested position (GI-4/GI-6/GI-7 — free, instant, spawns at
-    /// the producing building's spawn point). Mirrors <c>PlacementController</c>'s
-    /// produce-request subscription (decisions log #33) but for units instead of buildings —
-    /// units don't go through a ghost/placement flow, they just appear.
+    /// spawning that unit at the requested position — production is free and instant, spawning
+    /// at the producing building's spawn point. Mirrors <c>PlacementController</c>'s
+    /// produce-request subscription but for units instead of buildings — units don't go through
+    /// a ghost/placement flow, they just appear.
     ///
     /// The requested spawn position is snapped to the grid cell it falls in/nearest to (not the
     /// raw prefab position), and production is blocked outright if that cell is already occupied
     /// — by a building (<see cref="GridModel.IsOccupied"/>) or another unit (a live scan of
-    /// <see cref="UnitFactory.ActiveUnits"/>; units don't have a static footprint on the grid the
+    /// <see cref="UnitFactory.ActiveUnits"/>). Units don't have a static footprint on the grid the
     /// way buildings do, so this is a point-in-time check at spawn time, not a persisted
-    /// occupancy grid — no continuous unit-collision/pathfinding-around-units is implied).
+    /// occupancy grid — no continuous unit-collision/pathfinding-around-units is implied.
     /// </summary>
     public class UnitProductionController : MonoBehaviour
     {

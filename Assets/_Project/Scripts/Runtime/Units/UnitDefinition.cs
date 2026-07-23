@@ -5,8 +5,8 @@ namespace CaseGame.Units
 {
     /// <summary>
     /// Unit-specific data on top of <see cref="GameEntityDefinition"/>: attack damage and move
-    /// speed. The brief's 3 soldier types (10/5/2 attack damage, GI-9) are 3 instances of this
-    /// asset, not 3 code classes — see <see cref="SoldierBase"/>'s doc comment.
+    /// speed. The different soldier types are separate instances of this asset (varying attack
+    /// damage), not separate code classes — see <see cref="SoldierBase"/>'s doc comment.
     /// </summary>
     [CreateAssetMenu(fileName = "UnitDef_New", menuName = "CaseGame/Units/Unit Definition")]
     public class UnitDefinition : GameEntityDefinition

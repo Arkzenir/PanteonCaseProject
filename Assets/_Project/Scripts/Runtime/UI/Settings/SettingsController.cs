@@ -7,9 +7,8 @@ namespace CaseGame.UI.Settings
 {
     /// <summary>
     /// Settings screen controller: populates the resolution dropdown from the display's
-    /// distinct resolutions (built by the tested <see cref="ResolutionOptionsBuilder"/>) and
-    /// applies the chosen resolution + fullscreen state on demand. This is how GI-13 (aspect
-    /// ratio/resolution support) gets demonstrated to the evaluator.
+    /// distinct resolutions (via <see cref="ResolutionOptionsBuilder"/>) and applies the chosen
+    /// resolution and fullscreen state on demand.
     /// </summary>
     public class SettingsController : MonoBehaviour
     {

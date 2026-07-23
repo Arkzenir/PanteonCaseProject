@@ -4,12 +4,11 @@ using UnityEngine;
 namespace CaseGame.UI.Production
 {
     /// <summary>
-    /// The actual "infinite scroll view, object-pooled" math (UX brief: "Infinite Scrollview —
-    /// Object Pooling"): given how many data items exist and how far the view has scrolled,
-    /// decides which data index each of a small, fixed number of pooled slots should currently
-    /// show, and where. The pool never grows with the item count — that's what makes the list
-    /// "infinite"-capable. Plain C#, no Unity UI/MonoBehaviour dependency, so it's directly
-    /// testable independent of ScrollRect.
+    /// The infinite-scroll recycling math: given how many data items exist and how far the view
+    /// has scrolled, decides which data index each of a small, fixed number of pooled slots
+    /// should currently show, and where. The pool never grows with the item count — that's what
+    /// makes the list capable of scrolling through arbitrarily many items. Plain C#, no Unity
+    /// UI/MonoBehaviour dependency, so it's directly testable independent of ScrollRect.
     /// </summary>
     public static class ScrollRecycler
     {

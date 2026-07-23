@@ -4,13 +4,13 @@ using UnityEngine.SceneManagement;
 namespace CaseGame.Core
 {
     /// <summary>
-    /// The project's one brief-mandated Singleton (DESIGN → Design Patterns). Persists across
-    /// scene loads via <c>DontDestroyOnLoad</c> and owns scene-transition lifecycle. Exposed
-    /// to consumers through <see cref="IGameManager"/> rather than this concrete type.
-    /// A second instance in the scene self-destructs, keeping the first alive.
-    /// Expected to live under the <c>--- SYSTEMS ---</c> organizer (per CONVENTIONS.md scene
-    /// composition) rather than at scene root, so persistence targets the whole root object
-    /// (<c>transform.root</c>) — <c>DontDestroyOnLoad</c> only accepts root GameObjects.
+    /// The project's single cross-scene coordinator. Persists across scene loads via
+    /// <c>DontDestroyOnLoad</c> and owns scene-transition lifecycle. Exposed to consumers
+    /// through <see cref="IGameManager"/> rather than this concrete type. A second instance
+    /// in the scene self-destructs, keeping the first alive.
+    /// Expected to live under a <c>--- SYSTEMS ---</c> organizer object rather than at scene
+    /// root, so persistence targets the whole root object (<c>transform.root</c>) —
+    /// <c>DontDestroyOnLoad</c> only accepts root GameObjects.
     /// </summary>
     public class GameManager : MonoBehaviour, IGameManager
     {

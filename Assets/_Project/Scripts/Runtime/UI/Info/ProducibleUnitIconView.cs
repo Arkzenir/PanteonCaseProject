@@ -6,14 +6,12 @@ using UnityEngine.UI;
 namespace CaseGame.UI.Info
 {
     /// <summary>
-    /// View: one small icon representing a unit a selected building can produce (BRIEF.md
-    /// requirement 5) — and, since production is "free, instant, unlimited" for units too
-    /// (requirement 4) and the Info Panel's producible-unit row is the *only* place units are
-    /// ever listed (this is GI-6's "production sub-menu"), clicking it is how a unit actually
-    /// gets produced. Raises <see cref="UnitProductionRequestEventChannel"/> with the entry it's
-    /// bound to plus the spawn position <see cref="InfoPanelController"/> gave it — it doesn't
-    /// know or care who's listening (<c>UnitProductionController</c> does, decoupled via the
-    /// channel).
+    /// One small icon representing a unit a selected building can produce. Since production is
+    /// free and instant, and the Info Panel's producible-unit row is the only place units are
+    /// listed, clicking it is how a unit actually gets produced. Raises
+    /// <see cref="UnitProductionRequestEventChannel"/> with the entry it's bound to plus the
+    /// spawn position <see cref="InfoPanelController"/> gave it — it doesn't know or care who's
+    /// listening (<c>UnitProductionController</c> does, decoupled via the channel).
     /// </summary>
     public class ProducibleUnitIconView : MonoBehaviour
     {

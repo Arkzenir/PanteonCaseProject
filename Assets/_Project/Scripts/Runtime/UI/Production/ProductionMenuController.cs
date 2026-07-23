@@ -7,12 +7,11 @@ using UnityEngine.UI;
 namespace CaseGame.UI.Production
 {
     /// <summary>
-    /// Controller: the Production Menu's infinite, pooled scroll view (UX brief: "Infinite
-    /// Scrollview — Object Pooling"). Pools a small, fixed number of <see cref="ProductionMenuItemView"/>
-    /// rows via <see cref="PrefabPool{T}"/> — not one row per <see cref="BuildingCatalog"/> entry
-    /// — and rebinds them to different entries as the view scrolls, per <see cref="ScrollRecycler"/>'s
-    /// index math. Iterates the catalog generically; no per-building-type branch exists here
-    /// (BRIEF.md requirement 2).
+    /// Controller for the Production Menu's infinite, pooled scroll view. Pools a small, fixed
+    /// number of <see cref="ProductionMenuItemView"/> rows via <see cref="PrefabPool{T}"/> —
+    /// not one row per <see cref="BuildingCatalog"/> entry — and rebinds them to different
+    /// entries as the view scrolls, per <see cref="ScrollRecycler"/>'s index math. Iterates the
+    /// catalog generically; no per-building-type branch exists here.
     /// </summary>
     public class ProductionMenuController : MonoBehaviour
     {
@@ -46,7 +45,7 @@ namespace CaseGame.UI.Production
             scrollRect.onValueChanged.RemoveListener(OnScrollChanged);
         }
 
-        /// <summary>Builds the pool and its fixed set of slots. Called from <see cref="Awake"/> at runtime; exposed publicly (idempotent) so tests can call it directly instead of depending on Awake actually firing — see <c>ENVIRONMENT.md</c>'s note that Awake doesn't reliably run on AddComponent-created objects under this machine's batchmode EditMode test runner.</summary>
+        /// <summary>Builds the pool and its fixed set of slots. Called from <see cref="Awake"/> at runtime; exposed publicly (idempotent) so tests can call it directly instead of depending on Awake firing — Awake doesn't reliably run on AddComponent-created objects under the EditMode test runner.</summary>
         public void Initialize()
         {
             if (_pool != null)
@@ -66,7 +65,7 @@ namespace CaseGame.UI.Production
             ApplyRecycling(0f);
         }
 
-        /// <summary>Rebinds/repositions pooled slots for the given scroll offset. Public and independent of <see cref="ScrollRect"/>'s callback so tests can drive it directly, mirroring the "extract the testable decision, keep the callback thin" pattern used by <c>PlacementController</c>.</summary>
+        /// <summary>Rebinds/repositions pooled slots for the given scroll offset. Public and independent of <see cref="ScrollRect"/>'s callback so tests can drive it directly.</summary>
         public void ApplyScrollOffset(float scrollOffset)
         {
             ApplyRecycling(scrollOffset);

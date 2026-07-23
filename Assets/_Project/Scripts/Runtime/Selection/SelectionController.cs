@@ -10,10 +10,9 @@ using UnityEngine.InputSystem;
 namespace CaseGame.Selection
 {
     /// <summary>
-    /// Controller: left-click select / right-click move-or-attack (GI-7/8/10/11). A plain click
-    /// replaces the current selection; shift-click adds/removes a soldier (the brief's "unit(s)"
-    /// wording implies multi-select; shift-click is the minimal mechanism that doesn't require a
-    /// new drag-box visual system — see ARCHITECTURE.md decisions log). Selecting a building and
+    /// Controller: left-click select / right-click move-or-attack. A plain click replaces the
+    /// current selection; shift-click adds/removes a soldier — the minimal multi-select
+    /// mechanism that doesn't require a drag-box visual system. Selecting a building and
     /// selecting soldiers are mutually exclusive "modes" — selecting one clears the other, since
     /// only soldiers take move/attack commands and only buildings are shown on the (future)
     /// Information Panel.
@@ -21,8 +20,7 @@ namespace CaseGame.Selection
     /// Visual selection feedback is <see cref="GameEntityBase.SetSelected"/> — no new prefab
     /// wiring needed, unlike Placement's ghost. Right-click attack calls
     /// <see cref="SoldierBase.Attack"/>, which walks into range first if needed then sustains
-    /// the attack until the target leaves range or dies (human-directed, supersedes decision
-    /// #37's original "instant, range-less" design — see ARCHITECTURE.md decisions log).
+    /// the attack until the target leaves range or dies.
     ///
     /// The actual decisions (<see cref="HandleLeftClick"/>/<see cref="HandleRightClick"/>) take
     /// explicit, already-resolved inputs and are callable directly, independent of
@@ -30,14 +28,13 @@ namespace CaseGame.Selection
     /// keep the MonoBehaviour thin" pattern used by <c>PlacementController</c>/
     /// <c>ProductionMenuController</c>.
     ///
-    /// As of Report 035, also subscribes to the Production Menu's "produce" request
+    /// Also subscribes to the Production Menu's "produce" request
     /// (<see cref="HandleProduceRequested"/>) and clears the selection when one comes in — the
     /// same channel <c>PlacementController</c> independently reacts to by starting placement.
     /// This has no direct reference to <c>PlacementController</c> at all: it fixes a click-
     /// ordering race (this controller and Placement's each reading the same click independently,
     /// with no guaranteed order between them) by removing the stale selection that race could act
-    /// on, rather than trying to make the ordering itself reliable — see ARCHITECTURE.md
-    /// decisions log.
+    /// on, rather than trying to make the ordering itself reliable.
     /// </summary>
     public class SelectionController : MonoBehaviour
     {
@@ -100,16 +97,16 @@ namespace CaseGame.Selection
         /// Reacts to the Production Menu's "produce" click (<see cref="BuildingCatalogEntryEventChannel"/>
         /// — the same channel <c>PlacementController</c> independently subscribes to in order to
         /// begin placement, decoupled here the same way) by clearing the current selection.
-        /// Fixes a real bug (human-reported): <c>PlacementController</c> and this controller each
-        /// independently read the same right/left-click in their own <c>Update()</c>, with no
-        /// guaranteed ordering between them — cancelling a placement could still issue a move
-        /// order to a soldier selected *before* placement started, and committing one could
-        /// select-then-immediately-reselect in a confusing order. Clearing the selection the
-        /// instant placement is requested removes the stale selection entirely, so neither
-        /// controller's click handling has anything conflicting left to act on — no shared
-        /// reference or click-ordering guarantee needed between the two controllers at all. A
-        /// newly-placed building becoming the selection afterward (via the normal left-click
-        /// hit-test once it exists) is expected, not a bug.
+        /// <c>PlacementController</c> and this controller each independently read the same
+        /// right/left-click in their own <c>Update()</c>, with no guaranteed ordering between
+        /// them — cancelling a placement could still issue a move order to a soldier selected
+        /// *before* placement started, and committing one could select-then-immediately-reselect
+        /// in a confusing order. Clearing the selection the instant placement is requested
+        /// removes the stale selection entirely, so neither controller's click handling has
+        /// anything conflicting left to act on — no shared reference or click-ordering guarantee
+        /// needed between the two controllers at all. A newly-placed building becoming the
+        /// selection afterward (via the normal left-click hit-test once it exists) is expected,
+        /// not a bug.
         /// </summary>
         public void HandleProduceRequested(BuildingCatalogEntry entry)
         {
@@ -138,7 +135,7 @@ namespace CaseGame.Selection
         }
 
         /// <param name="cell">The grid cell under the cursor — used as the move destination when there's no attack target.</param>
-        /// <param name="hitTarget">Whatever entity was under the cursor, or null. Non-null takes priority over movement (GI-10/11) — <see cref="SoldierBase.Attack"/> handles walking into range first if needed, then a sustained attack loop, and switches targets immediately if a soldier was already attacking something else.</param>
+        /// <param name="hitTarget">Whatever entity was under the cursor, or null. Non-null takes priority over movement — <see cref="SoldierBase.Attack"/> handles walking into range first if needed, then a sustained attack loop, and switches targets immediately if a soldier was already attacking something else.</param>
         public void HandleRightClick(Vector2Int cell, GameEntityBase hitTarget)
         {
             _selectedSoldiers.RemoveAll(soldier => soldier == null || soldier.IsDead);
@@ -237,9 +234,9 @@ namespace CaseGame.Selection
                 // The previously-selected building died in combat elsewhere, without going
                 // through this controller — don't let a stale reference (possibly since reused
                 // by pooling for an unrelated building) short-circuit the equality check below.
-                // Mirrors the soldier-pruning pattern in HandleRightClick (decisions log #39).
-                // Manual removal is a separate, non-Health trigger — handled proactively by
-                // HandleBuildingRemoved instead, since removal never sets IsDead.
+                // Mirrors the soldier-pruning pattern in HandleRightClick. Manual removal is a
+                // separate, non-Health trigger — handled proactively by HandleBuildingRemoved
+                // instead, since removal never sets IsDead.
                 _selectedBuilding = null;
             }
 

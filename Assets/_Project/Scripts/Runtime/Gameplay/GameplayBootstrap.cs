@@ -43,16 +43,15 @@ namespace CaseGame.Gameplay
             selectionController.Initialize(grid, projectileFactory);
             unitProductionController.Initialize(unitFactory, grid);
 
-            // Camera pan/zoom stays within the environment's water backdrop (Report 031,
-            // human-requested) — computed from the same GridModel + GridDefinition.TerrainMargin
-            // the terrain itself is painted with (TerrainBounds, decisions log #78), so the two
-            // can never drift out of sync.
+            // Camera pan/zoom stays within the environment's water backdrop — computed from the
+            // same GridModel + GridDefinition.TerrainMargin the terrain itself is painted with
+            // (TerrainBounds), so the two can never drift out of sync.
             var margin = gridView.Definition.TerrainMargin;
             var (boundsMin, boundsMax) = TerrainBounds.Compute(grid, margin);
             cameraController.SetBounds(boundsMin, boundsMax);
 
             // Bakes the 3 Tilemap terrain layers into one SRP-batchable quad and hides the
-            // source Tilemaps — see decisions log #78 for why this is needed at all.
+            // source Tilemaps.
             terrainCompositor.Bake(grid, margin);
         }
     }

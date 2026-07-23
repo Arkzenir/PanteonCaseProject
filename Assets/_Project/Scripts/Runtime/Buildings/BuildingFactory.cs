@@ -5,10 +5,10 @@ using UnityEngine;
 namespace CaseGame.Buildings
 {
     /// <summary>
-    /// Factory pattern (brief-mandated): creates configured, pooled <see cref="BuildingBase"/>
-    /// instances from a <see cref="BuildingDefinition"/> + prefab. One <see cref="PrefabPool{T}"/>
-    /// per distinct prefab, created lazily. Doesn't touch grid occupancy or world position —
-    /// that's Placement's job once it exists (ARCHITECTURE.md: Placement owns "commit-to-grid").
+    /// Creates configured, pooled <see cref="BuildingBase"/> instances from a
+    /// <see cref="BuildingDefinition"/> + prefab. One <see cref="PrefabPool{T}"/> per distinct
+    /// prefab, created lazily. Doesn't touch grid occupancy or world position — that's
+    /// Placement's responsibility once a building is actually committed to the grid.
     /// </summary>
     public class BuildingFactory
     {

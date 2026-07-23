@@ -3,11 +3,10 @@ using UnityEngine;
 namespace CaseGame.Buildings
 {
     /// <summary>
-    /// A producible building type paired with the prefab to spawn for it — the shape
-    /// <see cref="BuildingFactory.Create"/> already needs (definition + prefab), reused here as
-    /// a single value so the Production Menu can list buildings generically (BRIEF.md
-    /// requirement 2: no per-type UI branches) and hand off exactly one payload when the player
-    /// asks to produce one.
+    /// A producible building type paired with the prefab to spawn for it — the same shape
+    /// <see cref="BuildingFactory.Create"/> needs (definition + prefab), reused here as a
+    /// single value so the Production Menu can list buildings generically and hand off exactly
+    /// one payload when the player asks to produce one.
     /// </summary>
     [System.Serializable]
     public struct BuildingCatalogEntry

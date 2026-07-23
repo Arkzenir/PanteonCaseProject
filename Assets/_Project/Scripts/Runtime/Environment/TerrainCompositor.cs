@@ -5,14 +5,12 @@ namespace CaseGame.Environment
 {
     /// <summary>
     /// Bakes the Water/Island_Cliff/Island_Grass Tilemaps into a single texture on one
-    /// <see cref="outputRenderer"/> quad, once, at gameplay-scene load — then hides the source
-    /// Tilemaps. Trades runtime terrain editing (never needed; the grid is fixed once a gameplay
-    /// scene is loaded) for collapsing a guaranteed-multi-SetPass, SRP-Batcher-incompatible
-    /// render path (<c>TilemapRenderer</c>) down to one fully SRP-batchable
-    /// <see cref="SpriteRenderer"/> draw, at full tile-art fidelity (decisions log #78).
-    /// <see cref="TerrainBounds"/>/<see cref="TerrainBakeResolution"/> hold the actual sizing
-    /// math, kept pure/testable — this MonoBehaviour only orchestrates the Unity API calls a
-    /// runtime bake requires (camera framing, render-to-texture, sprite creation).
+    /// <see cref="outputRenderer"/> quad at gameplay-scene load, then hides the source Tilemaps.
+    /// Tilemaps can't join the SRP Batcher no matter how they're configured, so folding them
+    /// into one plain <see cref="SpriteRenderer"/> trades runtime terrain editing (not needed
+    /// once a match starts) for a much cheaper draw. <see cref="TerrainBounds"/>/
+    /// <see cref="TerrainBakeResolution"/> hold the sizing math; this class just orchestrates
+    /// the camera/render-texture/sprite calls.
     /// </summary>
     public class TerrainCompositor : MonoBehaviour
     {
@@ -55,7 +53,7 @@ namespace CaseGame.Environment
         {
             // The Tilemaps render at z=0; the camera must sit strictly outside its own near clip
             // plane looking at them (matches Main Camera's -10 convention), or it captures
-            // nothing at all — the bug that first shipped this feature with a blank bake.
+            // nothing at all.
             var cameraTransform = bakeCamera.transform;
             cameraTransform.position = new Vector3(center.x, center.y, -cameraDistance);
             bakeCamera.orthographicSize = size.y * 0.5f;

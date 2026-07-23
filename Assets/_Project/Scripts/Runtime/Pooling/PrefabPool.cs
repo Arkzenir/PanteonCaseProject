@@ -6,9 +6,8 @@ namespace CaseGame.Pooling
     /// <summary>
     /// Reusable prefab-instance pool for any Component type, built on Unity's built-in
     /// <see cref="ObjectPool{T}"/>. Callers <see cref="Get"/>/<see cref="Release"/> instances
-    /// instead of calling Instantiate/Destroy directly — this is the brief-mandated Object
-    /// Pooling pattern, applied generically so whichever concrete type needs it later (scroll
-    /// view list items, soldiers, buildings) can reuse this instead of a bespoke pool each time.
+    /// instead of calling Instantiate/Destroy directly, so any concrete type that needs pooling
+    /// (list items, soldiers, buildings) can reuse this instead of a bespoke pool each time.
     /// </summary>
     public class PrefabPool<T> where T : Component
     {

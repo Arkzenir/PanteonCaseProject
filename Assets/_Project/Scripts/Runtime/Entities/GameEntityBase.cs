@@ -58,7 +58,7 @@ namespace CaseGame.Entities
             _health.ApplyDamage(amount);
         }
 
-        /// <summary>Keeps the selection outline tracking whichever sprite frame is currently showing — needed now that <see cref="Units.SoldierBase"/> soldiers animate <see cref="spriteRenderer"/>'s sprite every frame via their <c>Animator</c> (Report 033), which would otherwise leave the outline frozen on its initial pose while the real sprite moves. <c>LateUpdate</c>, not <c>Update</c>, so this always runs after the Animator has applied the current frame's sprite. Gated on the outline actually being visible — this is free rendering-wise (same shared atlas texture, same outline material/draw call either way, see chat), but there's no reason to do even a cheap reference copy for the common case of an unselected entity.</summary>
+        /// <summary>Keeps the selection outline tracking whichever sprite frame is currently showing — needed because <see cref="Units.SoldierBase"/> soldiers animate <see cref="spriteRenderer"/>'s sprite every frame via their <c>Animator</c>, which would otherwise leave the outline frozen on its initial pose while the real sprite moves. <c>LateUpdate</c>, not <c>Update</c>, so this always runs after the Animator has applied the current frame's sprite. Gated on the outline actually being visible — copying the reference costs nothing extra (same shared atlas texture, same draw call either way), but there's no reason to do it for the common case of an unselected entity.</summary>
         private void LateUpdate()
         {
             if (outlineRenderer != null && outlineRenderer.enabled && spriteRenderer != null)
@@ -76,7 +76,7 @@ namespace CaseGame.Entities
             }
         }
 
-        /// <summary>Mirrors both the real sprite and its selection outline horizontally (human-requested unit facing, Report 034) — applied to both renderers together so the outline never drifts out of sync with the sprite it's supposed to trace. A plain protected method, not a public one: only a subclass decides its own facing (<see cref="Units.SoldierBase"/>), nothing external needs to flip an entity from the outside the way <see cref="SetSelected"/> is driven externally by Selection.</summary>
+        /// <summary>Mirrors both the real sprite and its selection outline horizontally — applied to both renderers together so the outline never drifts out of sync with the sprite it's supposed to trace. A plain protected method, not public: only a subclass decides its own facing (<see cref="Units.SoldierBase"/>); nothing external needs to flip an entity the way <see cref="SetSelected"/> is driven externally by Selection.</summary>
         protected void SetFlippedHorizontally(bool flipped)
         {
             if (spriteRenderer != null)
@@ -90,7 +90,7 @@ namespace CaseGame.Entities
             }
         }
 
-        /// <summary>Grid cell nearest to <paramref name="fromCell"/> that this entity actually occupies. Default (units): just its own cell. <see cref="Buildings.BuildingBase"/> overrides this to clamp into its multi-cell footprint instead of always reporting one arbitrary corner — lets attack range/approach-pathing (<see cref="Units.SoldierBase"/>) treat buildings and units identically without a Units→Buildings reference (circular-dependency constraint, see ARCHITECTURE.md decisions log).</summary>
+        /// <summary>Grid cell nearest to <paramref name="fromCell"/> that this entity actually occupies. Default (units): just its own cell. <see cref="Buildings.BuildingBase"/> overrides this to clamp into its multi-cell footprint instead of always reporting one arbitrary corner — lets attack range/approach-pathing (<see cref="Units.SoldierBase"/>) treat buildings and units identically without Units needing a direct reference to Buildings.</summary>
         public virtual Vector2Int GetNearestOccupiedCell(GridModel grid, Vector2Int fromCell)
         {
             return grid.WorldToCell(transform.position);

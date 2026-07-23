@@ -6,8 +6,7 @@ namespace CaseGame.Placement
     /// View: toggles a building instance between a desaturated "ghost" silhouette (tinted
     /// green/red by placement validity, via <c>Art/Shaders/SpriteGrayscaleGhost.shader</c>)
     /// and its real sprite — on the same pooled instance, so there's one object with one
-    /// lifecycle instead of a separate temporary preview object plus the real building
-    /// (GI-3's "user must be visually informed when the location is invalid").
+    /// lifecycle instead of a separate temporary preview object plus the real building.
     /// </summary>
     public class BuildingGhostView : MonoBehaviour
     {

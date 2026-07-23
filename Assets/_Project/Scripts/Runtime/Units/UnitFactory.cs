@@ -5,9 +5,9 @@ using UnityEngine;
 namespace CaseGame.Units
 {
     /// <summary>
-    /// Factory pattern (brief-mandated): creates configured, pooled <see cref="SoldierBase"/>
-    /// instances from a <see cref="UnitDefinition"/> + prefab. Mirrors <c>BuildingFactory</c>
-    /// exactly — one <see cref="PrefabPool{T}"/> per distinct prefab, created lazily.
+    /// Creates configured, pooled <see cref="SoldierBase"/> instances from a
+    /// <see cref="UnitDefinition"/> + prefab. Mirrors <c>BuildingFactory</c> exactly — one
+    /// <see cref="PrefabPool{T}"/> per distinct prefab, created lazily.
     /// </summary>
     public class UnitFactory
     {

@@ -171,11 +171,11 @@ namespace CaseGame.Tests.EditMode.Selection
         [Test]
         public void HandleRightClick_WithTarget_EachSelectedSoldierStartsAttacking()
         {
-            // Attack is now coroutine-driven (walk into range, then a sustained tick loop) rather
-            // than an instant hit — the coroutine's own progression is Play-Mode-only verifiable
-            // (same established limitation as SoldierBase.FollowPath), so this only checks that
-            // HandleRightClick actually routes to Attack (observable via IsActing, set synchronously
-            // by StartCoroutine's return, independent of how far the coroutine body has run).
+            // Attack is coroutine-driven (walk into range, then a sustained tick loop) rather than
+            // an instant hit, and the coroutine's own progression can't be verified outside Play
+            // Mode. So this only checks that HandleRightClick routes to Attack, observable via
+            // IsActing, which is set synchronously by StartCoroutine's return regardless of how
+            // far the coroutine body has run.
             var first = CreateSoldier(attackDamage: 5);
             var second = CreateSoldier(attackDamage: 3);
             _controller.HandleLeftClick(first, additive: false);

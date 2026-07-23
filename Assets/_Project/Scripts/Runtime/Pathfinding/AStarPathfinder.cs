@@ -5,13 +5,12 @@ using UnityEngine;
 namespace CaseGame.Pathfinding
 {
     /// <summary>
-    /// Custom grid-based A* pathfinding (brief-mandated algorithm choice — decisions log #3;
-    /// no Unity NavMesh). Stateless: takes a <see cref="GridModel"/> and start/goal cells,
-    /// returns the shortest path as a list of cells, or null if no path exists. Movement is
-    /// 8-directional (diagonal cost √2) with corner-cutting prevented — a diagonal step is
-    /// rejected if either flanking orthogonal cell is blocked, so a path can't clip through a
-    /// building's corner. This is how units "wander around buildings" (GI-7/GI-8) instead of
-    /// cutting straight through them.
+    /// Custom grid-based A* pathfinding (no Unity NavMesh). Stateless: takes a
+    /// <see cref="GridModel"/> and start/goal cells, returns the shortest path as a list of
+    /// cells, or null if no path exists. Movement is 8-directional (diagonal cost √2) with
+    /// corner-cutting prevented — a diagonal step is rejected if either flanking orthogonal cell
+    /// is blocked, so a path can't clip through a building's corner and units walk around
+    /// buildings instead of through them.
     /// </summary>
     public static class AStarPathfinder
     {

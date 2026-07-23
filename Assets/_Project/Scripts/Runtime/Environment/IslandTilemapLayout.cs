@@ -5,13 +5,13 @@ using UnityEngine.Tilemaps;
 namespace CaseGame.Environment
 {
     /// <summary>
-    /// Pure logic for procedurally reassembling the hand-painted island (Report 031) at any
-    /// grid size: a 9-slice grass layer (4 corners, 4 edges, repeating center) covering
-    /// <c>columns</c>×<c>rows</c> cells starting at (0,0) — matching <c>GridModel</c>'s own cell
-    /// coordinates exactly, so the island always sits under the gameplay grid regardless of its
-    /// size — plus one cliff row at <c>y = -1</c> (directly beneath the grass's bottom row,
-    /// "facing the player," human-specified) spanning the same <c>columns</c> width, corner
-    /// pieces at each end and the repeating middle piece between them.
+    /// Pure logic for procedurally assembling the island at any grid size: a 9-slice grass layer
+    /// (4 corners, 4 edges, repeating center) covering <c>columns</c>×<c>rows</c> cells starting
+    /// at (0,0) — matching <c>GridModel</c>'s own cell coordinates exactly, so the island always
+    /// sits under the gameplay grid regardless of its size — plus one cliff row at <c>y = -1</c>
+    /// (directly beneath the grass's bottom row, facing the player) spanning the same
+    /// <c>columns</c> width, corner pieces at each end and the repeating middle piece between
+    /// them.
     /// </summary>
     public static class IslandTilemapLayout
     {

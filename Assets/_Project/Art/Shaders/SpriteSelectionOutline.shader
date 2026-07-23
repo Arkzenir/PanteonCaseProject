@@ -1,9 +1,8 @@
-// Draws a solid-color ring exactly where the sprite's own alpha is transparent but a nearby
-// texel is opaque — i.e. only outside the sprite's own silhouette, never overlapping it. Meant
-// for a dedicated "Outline" child SpriteRenderer (same sprite as the real Visuals renderer,
-// rendered behind it), toggled on/off via GameEntityBase.SetSelected, rather than tinting the
-// real sprite directly (see SpriteGrayscaleGhost.shader's doc comment for why tinting full-color
-// art directly reads muddy/ambiguous instead of as a clean signal).
+// Draws a solid-color ring wherever the sprite's own alpha is transparent but a nearby texel
+// is opaque — i.e. only outside the sprite's silhouette, never overlapping it. Used on a
+// dedicated "Outline" child SpriteRenderer behind the real sprite, toggled by
+// GameEntityBase.SetSelected, rather than tinting the sprite directly (see
+// SpriteGrayscaleGhost.shader for why direct tinting reads muddy instead of as a clean signal).
 Shader "CaseGame/SpriteSelectionOutline"
 {
     Properties

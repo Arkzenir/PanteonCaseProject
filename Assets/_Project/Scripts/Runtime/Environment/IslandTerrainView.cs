@@ -5,13 +5,12 @@ using UnityEngine.Tilemaps;
 namespace CaseGame.Environment
 {
     /// <summary>
-    /// Humble view rebuilding the island's grass/cliff Tilemaps (Report 031's hand-painted
-    /// reference, now generated for any grid size, human-requested) from
+    /// Humble view rebuilding the island's grass/cliff Tilemaps from
     /// <see cref="IslandTilemapLayout"/> whenever <see cref="gridDefinition"/>'s
     /// <c>Columns</c>/<c>Rows</c> — or <see cref="tileSet"/> itself — change.
     /// <c>[ExecuteAlways]</c> plus a cheap per-Update signature check mirrors
-    /// <see cref="GridView"/>'s exact Report 029 pattern: editing the grid size in the Inspector
-    /// previews the regenerated island immediately, without entering Play Mode.
+    /// <see cref="GridView"/>'s pattern: editing the grid size in the Inspector previews the
+    /// regenerated island immediately, without entering Play Mode.
     /// </summary>
     [ExecuteAlways]
     public class IslandTerrainView : MonoBehaviour
